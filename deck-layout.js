@@ -4,7 +4,8 @@
  Phase 2C: Metrics spacing fix, 5 new layouts
            (pillar, fromto, capability, schedule, coverloc)
  v6.0.1:  Divider gap, pillar title spacing, card title wrap,
-          stats dark-mode contrast
+          stats dark-mode contrast, duplicate to include 
+          claude approaches
  ============================================================ */
 
 (function () {
