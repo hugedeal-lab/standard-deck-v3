@@ -1,0 +1,94 @@
+{
+  "actions": [
+    "check", "check-circle", "xmark", "xmark-circle",
+    "plus", "minus", "plus-circle", "minus-circle",
+    "download", "upload", "copy", "paste",
+    "edit", "edit-pencil", "trash",
+    "search", "zoom-in", "zoom-out",
+    "filter", "sort-down",
+    "refresh-double", "redo", "undo",
+    "arrow-up", "arrow-down", "arrow-left", "arrow-right",
+    "nav-arrow-up", "nav-arrow-down",
+    "expand", "collapse",
+    "link", "attachment",
+    "share-android", "bookmark",
+    "star", "heart",
+    "warning-triangle", "info-circle"
+  ],
+  "business": [
+    "briefcase", "building", "shop",
+    "hand-cash", "handshake",
+    "target", "bullseye", "trophy", "medal-1st",
+    "strategy", "kanban-board",
+    "presentation", "report-columns",
+    "suitcase", "delivery-truck",
+    "megaphone", "post",
+    "flag", "pin-alt"
+  ],
+  "connectivity": [
+    "globe", "wifi", "wifi-off",
+    "cloud", "cloud-upload", "cloud-download",
+    "signal", "antenna",
+    "network-alt", "network-right"
+  ],
+  "communication": [
+    "mail", "mail-open", "send",
+    "chat-bubble", "chat-bubble-check",
+    "phone", "video-camera",
+    "message-text", "message-alert",
+    "megaphone", "bell", "bell-notification"
+  ],
+  "development": [
+    "code", "code-brackets", "terminal",
+    "git-branch", "git-merge", "git-pull-request",
+    "bug", "test-tube",
+    "cpu", "database", "server",
+    "app-window", "browser",
+    "shield-check", "lock", "key"
+  ],
+  "docs": [
+    "page", "page-edit", "page-plus", "page-search",
+    "clipboard-check", "notes",
+    "book", "bookmark-book",
+    "journal", "archive",
+    "folder", "folder-plus",
+    "file-not-found", "doc-magnifying-glass"
+  ],
+  "finance": [
+    "wallet", "coin", "bank",
+    "percentage", "calculator",
+    "graph-up", "graph-down",
+    "stats-up-square", "stats-down-square",
+    "pie-chart", "bar-chart-3", "area-chart",
+    "credit-card", "receipt",
+    "scale", "safe"
+  ],
+  "organization": [
+    "calendar", "calendar-plus",
+    "clock", "timer", "alarm",
+    "layers", "list", "numbered-list-left",
+    "table", "view-columns-2", "view-columns-3",
+    "puzzle", "sitemap",
+    "hierarchy", "org-tree"
+  ],
+  "other": [
+    "light-bulb", "light-bulb-on",
+    "rocket", "sparks",
+    "eye-empty", "eye-off",
+    "compass", "map",
+    "home", "settings", "wrench",
+    "color-filter", "palette",
+    "sun-light", "moon",
+    "leaf", "eco-energy",
+    "medal", "ribbon",
+    "question-mark-circle", "help-circle"
+  ],
+  "users": [
+    "user", "user-plus", "user-minus",
+    "group", "community",
+    "people-tag", "profile-circle",
+    "crown", "brain",
+    "running", "yoga",
+    "emoji", "emoji-satisfied"
+  ]
+}
