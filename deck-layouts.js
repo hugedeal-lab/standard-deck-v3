@@ -1,11 +1,12 @@
 /* ============================================================
- deck-layouts.js v6.0.1 -- Layout Shortcut Library
+ deck-layouts.js v6.0.2 -- Layout Shortcut Library
  Depends on: standard-deck.js (for SD_CONST, getTitleMetrics)
  Phase 2C: Metrics spacing fix, 5 new layouts
            (pillar, fromto, capability, schedule, coverloc)
  v6.0.1:  Divider gap, pillar title spacing, card title wrap,
-          stats dark-mode contrast, duplicate to include 
+          stats dark-mode contrast, duplicate to include
           claude approaches
+ v6.0.2:  Client layout extensions — cover-presenter
  ============================================================ */
 
 (function () {
@@ -716,26 +717,92 @@ function layoutCoverloc(cfg) {
 }
 
 // ============================================================
+// CLIENT LAYOUT: COVER-PRESENTER — speaker introduction [v6.0.2]
+// Uses renderHeader(cfg) for standard y=1.10 slide titles,
+// followed by bold subtitle, date, and dynamically stacking
+// presenter rows via cfg.items.
+// Max 4 presenter rows before reaching CONTENT_END (6.80").
+// ============================================================
+
+function layoutCoverPresenter(cfg) {
+  var header = renderHeader(cfg);
+  var els = header.els;
+  var startY = header.contentY;
+  var isDark = cfg.dark === 1;
+
+  // Full-width grid
+  var grid = getGrid(1);
+  var cx = grid.cols[0].x;
+  var cw = grid.cols[0].w;
+
+  // Semantic accent handling for accessibility
+  var labelColor = isDark ? 'accentLt' : 'accent';
+
+  // Deck Subtitle
+  var subY = startY + 0.25;
+  if (cfg.subtitle) {
+    els.push({
+      type: 't', text: cfg.subtitle, x: cx, y: subY,
+      w: cw, h: 0.40, font: 'H', size: 24, color: labelColor
+    });
+  }
+
+  // Deck Date
+  var dateY = subY + 0.50;
+  if (cfg.date) {
+    els.push({
+      type: 't', text: cfg.date, x: cx, y: dateY,
+      w: cw, h: 0.30, font: 'B', size: 16, color: 'body'
+    });
+  }
+
+  // Iterating Presenters via parameterized cfg.items
+  var items = cfg.items || [];
+  var presStartY = dateY + 1.20;
+
+  items.forEach(function(item, i) {
+    var rowY = presStartY + (i * 0.90);
+
+    // Boundary check: elements must not bleed past CONTENT_END (6.80")
+    if (rowY + 0.70 <= C.CONTENT_END) {
+      els.push({
+        type: 't', text: item.title, x: cx, y: rowY,
+        w: cw, h: 0.35, font: 'H', size: 18, color: 'title'
+      });
+      if (item.text) {
+        els.push({
+          type: 't', text: item.text, x: cx, y: rowY + 0.35,
+          w: cw, h: 0.35, font: 'B', size: 16, color: 'body'
+        });
+      }
+    }
+  });
+
+  return els;
+}
+
+// ============================================================
 // LAYOUT DISPATCHER
 // ============================================================
 
 var LAYOUT_MAP = {
-  cover:      layoutCover,
-  closing:    layoutClosing,
-  divider:    layoutDivider,
-  agenda:     layoutAgenda,
-  cards:      layoutCards,
-  stats:      layoutStats,
-  metrics:    layoutMetrics,
-  split:      layoutSplit,
-  rows:       layoutRows,
-  detail:     layoutDetail,
-  bullets:    layoutBullets,
-  pillar:     layoutPillar,
-  fromto:     layoutFromto,
-  capability: layoutCapability,
-  schedule:   layoutSchedule,
-  coverloc:   layoutCoverloc
+  cover:          layoutCover,
+  closing:        layoutClosing,
+  divider:        layoutDivider,
+  agenda:         layoutAgenda,
+  cards:          layoutCards,
+  stats:          layoutStats,
+  metrics:        layoutMetrics,
+  split:          layoutSplit,
+  rows:           layoutRows,
+  detail:         layoutDetail,
+  bullets:        layoutBullets,
+  pillar:         layoutPillar,
+  fromto:         layoutFromto,
+  capability:     layoutCapability,
+  schedule:       layoutSchedule,
+  coverloc:       layoutCoverloc,
+  coverPresenter: layoutCoverPresenter    // [v6.0.2] Client extension
 };
 
 function dispatch(slideData) {
