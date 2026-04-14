@@ -1,9 +1,12 @@
 /* ============================================================
- deck-shell.js v6.0.1 -- UI Shell & PPTX Export
+ deck-shell.js v6.0.2 -- UI Shell & PPTX Export
  Depends on: standard-deck.js, deck-layouts.js, pptxgen.bundle.js
  Phase 2A: Background picker, Pantone PPTX masters, footer config
  v6.0.1:  charSpacing for L1-L5, card shadows, chart polish,
           object reuse safety
+ v6.0.2:  customFooter support, no-footer PPTX masters,
+          image prefetch cache, bgImage slide backgrounds,
+          exportImage src support for external URLs
  ============================================================
  WARNING: PptxGenJS mutates option objects in-place (e.g.
  converting shadow/margin values to EMU). Never share option
@@ -29,6 +32,36 @@ var _totalSlides   = 0;
 var _customLogo    = null;
 var _noLogo        = false;
 var _imageMode     = false;
+var _imageCache    = {};
+
+// ============================================================
+// IMAGE PREFETCH CACHE [v6.0.2]
+// Uses Image() constructor (governed by img-src CSP, not
+// connect-src) to load external assets for PPTX export.
+// Gracefully skips on CORS or CSP failures.
+// ============================================================
+
+function prefetchImage(url) {
+  if (_imageCache[url]) return;
+  var img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = function () {
+    var canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+    try {
+      _imageCache[url] = canvas.toDataURL('image/png');
+    } catch (e) {
+      console.warn('[deck-shell] CORS blocked base64 conversion for: ' + url);
+    }
+  };
+  img.onerror = function () {
+    console.warn('[deck-shell] Failed to prefetch: ' + url);
+  };
+  img.src = url;
+}
 
 // ============================================================
 // STYLES
@@ -319,18 +352,18 @@ var toolbar = document.createElement('div');
 toolbar.className = 'sd-toolbar';
 toolbar.innerHTML = [
   '<div class="sd-toolbar-left">',
-  '  <button class="sd-btn sd-prev" title="Previous slide">◀</button>',
+  '  <button class="sd-btn sd-prev" title="Previous slide">â—€</button>',
   '  <span class="sd-slide-counter">',
   '    Slide <span class="sd-current">1</span>',
   '    / <span class="sd-total">' + _totalSlides + '</span>',
   '  </span>',
-  '  <button class="sd-btn sd-next" title="Next slide">▶</button>',
+  '  <button class="sd-btn sd-next" title="Next slide">â–¶</button>',
   '</div>',
   '<div class="sd-toolbar-right">',
-  '  <button class="sd-btn sd-color-btn" title="Color & Background">🎨 Color</button>',
-  '  <button class="sd-btn sd-notes-btn" title="Toggle Notes">📝 Notes</button>',
-  '  <button class="sd-btn sd-logo-btn" title="Upload Logo">🖼 Logo</button>',
-  '  <button class="sd-btn sd-btn-download sd-download-btn" title="Download PPTX">⬇ Download</button>',
+  '  <button class="sd-btn sd-color-btn" title="Color & Background">ðŸŽ¨ Color</button>',
+  '  <button class="sd-btn sd-notes-btn" title="Toggle Notes">ðŸ“ Notes</button>',
+  '  <button class="sd-btn sd-logo-btn" title="Upload Logo">ðŸ–¼ Logo</button>',
+  '  <button class="sd-btn sd-btn-download sd-download-btn" title="Download PPTX">â¬‡ Download</button>',
   '</div>'
 ].join('');
 
@@ -499,7 +532,7 @@ panel.style.display = 'none';
 panel.innerHTML = [
   '<div class="sd-notes-header">',
   '  <span>Speaker Notes</span>',
-  '  <button class="sd-btn sd-notes-close">✕</button>',
+  '  <button class="sd-btn sd-notes-close">âœ•</button>',
   '</div>',
   '<div class="sd-notes-content">No speaker notes for this slide.</div>'
 ].join('');
@@ -548,10 +581,10 @@ panel.style.display = 'none';
 panel.innerHTML = [
   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">',
   '  <span style="color:#F5F5F5;font-weight:600;font-size:13px;">Logo Manager</span>',
-  '  <button class="sd-btn sd-logo-close">✕</button>',
+  '  <button class="sd-btn sd-logo-close">âœ•</button>',
   '</div>',
   '<div class="sd-logo-preview"><span style="color:#666;font-size:13px;">No logo uploaded</span></div>',
-  '<button class="sd-btn sd-logo-upload" style="margin-bottom:12px;">📁 Upload Logo</button>',
+  '<button class="sd-btn sd-logo-upload" style="margin-bottom:12px;">ðŸ“ Upload Logo</button>',
   '<input type="file" class="sd-logo-file" accept=".png,.jpg,.jpeg,.svg" style="display:none;">',
   '<div class="sd-logo-controls" style="display:none;">',
   '  <label>Size:</label>',
@@ -762,7 +795,7 @@ if (_customLogo) applyLogoToSlides();
 }
 
 // ============================================================
-// V6.0: PPTX EXPORT — bgMode-aware masters
+// V6.0: PPTX EXPORT [v6.0.2: customFooter, bgImage, no-footer masters]
 // ============================================================
 
 function exportPPTX() {
@@ -822,10 +855,32 @@ try {
     ]
   });
 
+  // v6.0.2: No-footer masters for slides with custom footers
+  pptx.defineSlideMaster({
+    title: 'SD_DARK_NOFOOTER',
+    background: { color: darkBgColor }
+  });
+
+  pptx.defineSlideMaster({
+    title: 'SD_LIGHT_NOFOOTER',
+    background: { color: lightBgColor }
+  });
+
   _D.forEach(function (slideData, index) {
     var isDark = !!slideData.dark;
     var master = isDark ? 'SD_DARK' : 'SD_LIGHT';
+
+    // v6.0.2: Use no-footer master for slides with custom footer
+    if (slideData.customFooter) {
+      master = isDark ? 'SD_DARK_NOFOOTER' : 'SD_LIGHT_NOFOOTER';
+    }
+
     var slide = pptx.addSlide({ masterName: master });
+
+    // v6.0.2: Override background with cached image if available
+    if (slideData.bgImage && _imageCache[slideData.bgImage]) {
+      slide.background = { data: _imageCache[slideData.bgImage] };
+    }
 
     var els;
     if (slideData.layout && window.DeckLayouts) {
@@ -839,7 +894,8 @@ try {
       exportElement(slide, el, isDark, accent, pptx);
     });
 
-    if (slideData.num) {
+    // v6.0.2: Guard num export with customFooter check
+    if (slideData.num && !slideData.customFooter) {
       var numColor = isDark ? '8B8C81' : '53544A';
 
       slide.addShape(pptx.shapes.RECTANGLE, {
@@ -932,23 +988,15 @@ var fn = exporters[el.type];
 if (fn) fn(slide, el, isDark, accent, pptx);
 }
 
-// ============================================================
-// v6.0.1 FIX 1A: exportText — native charSpacing for L1-L5
-// Replaces the space-insertion hack with PptxGenJS charSpacing.
-// Text is now editable, searchable, and reflowable in PowerPoint.
-// ============================================================
-
 function exportText(slide, el, isDark) {
 var isCompact = el.w <= 0.80 && el.h <= 0.80;
 var textStyle = SD.getTextStyle(el);
 var exportedText = el.text || '';
 
-// v6.0.1: All uppercase styles handled uniformly
 if (['L1', 'L2', 'L3', 'L5'].indexOf(textStyle) > -1) {
   exportedText = exportedText.toUpperCase();
 }
 
-// v6.0.1: Native charSpacing per typography level
 var charSpace = 0;
 if (textStyle === 'L1') charSpace = 12;
 else if (textStyle === 'L3') charSpace = 3;
@@ -974,12 +1022,6 @@ slide.addText(exportedText, {
 });
 }
 
-// ============================================================
-// v6.0.1 FIX 2A: exportShape — subtle shadows on light cards
-// Adds a soft drop shadow to card backgrounds on light slides.
-// Dark slides are unaffected (shadow invisible on dark bg).
-// ============================================================
-
 function exportShape(slide, el, isDark, accent, pptx) {
 var opts = {
   x: el.x, y: el.y, w: el.w, h: el.h,
@@ -988,7 +1030,6 @@ var opts = {
 if (el.border) opts.line = { color: SD.colorForPptx(el.border, isDark), width: 1 };
 if (el.transparency) opts.fill.transparency = el.transparency;
 
-// v6.0.1: Subtle shadow on card backgrounds (light slides only)
 if (!isDark && el.fill === 'cardBg' && !el.noShadow) {
   opts.shadow = {
     type: 'outer',
@@ -1051,11 +1092,6 @@ slide.addText(el.icon || '', {
 });
 }
 
-// ============================================================
-// v6.0.1 FIX 2B: exportChart — modern chart styling
-// Adds clean chart area, muted grid lines, better data labels.
-// ============================================================
-
 function exportChart(slide, el, isDark, accent, pptx) {
 var chartTypeMap = {
   bar: 'BAR', line: 'LINE', pie: 'PIE',
@@ -1088,13 +1124,11 @@ var chartOpts = {
   legendPos: opts.legendPos || 'b',
   legendColor: SD.colorForPptx('body', isDark),
 
-  // v6.0.1: Clean chart area background
   chartArea: {
     fill: { color: isDark ? '363732' : 'FFFFFF' },
     roundedCorners: true
   },
 
-  // v6.0.1: Muted grid lines
   valGridLine: {
     color: isDark ? '53544A' : 'E2E8F0',
     size: 0.5
@@ -1109,7 +1143,6 @@ if (el.chartType === 'bar' || el.chartType === 'line' || el.chartType === 'area'
   chartOpts.catAxisLabelColor = SD.colorForPptx('body', isDark);
   chartOpts.valAxisLabelColor = SD.colorForPptx('body', isDark);
 
-  // v6.0.1: Better data label positioning for bar charts
   if (el.chartType === 'bar') {
     chartOpts.dataLabelPosition = opts.dataLabelPosition || 'outEnd';
   }
@@ -1166,13 +1199,28 @@ slide.addTable(tableRows, {
 });
 }
 
+// ============================================================
+// IMAGE EXPORTER [v6.0.2: src support with prefetch cache]
+// ============================================================
+
 function exportImage(slide, el) {
-var imgEl = document.getElementById(el.ref);
-if (!imgEl) return;
-var img = imgEl.querySelector('img');
-if (img && img.src && img.src.indexOf('data:') === 0) {
-  slide.addImage({ data: img.src, x: el.x, y: el.y, w: el.w, h: el.h });
-}
+  // v6.0.2: External URL images via prefetch cache
+  if (el.src) {
+    var cached = _imageCache[el.src];
+    if (cached) {
+      slide.addImage({ data: cached, x: el.x, y: el.y, w: el.w, h: el.h });
+    } else {
+      console.warn('[deck-shell] Image not in cache (CSP may have blocked prefetch): ' + el.src);
+    }
+    return;
+  }
+  // Existing ref-based image logic
+  var imgEl = document.getElementById(el.ref);
+  if (!imgEl) return;
+  var img = imgEl.querySelector('img');
+  if (img && img.src && img.src.indexOf('data:') === 0) {
+    slide.addImage({ data: img.src, x: el.x, y: el.y, w: el.w, h: el.h });
+  }
 }
 
 // ============================================================
@@ -1193,7 +1241,7 @@ return title.replace(/[^a-zA-Z0-9\s_-]/g, '').replace(/\s+/g, '_').substring(0, 
 }
 
 // ============================================================
-// V6.0: deckInit — bgMode auto-detect + footer config
+// V6.0: deckInit [v6.0.2: asset prefetch after renderAll]
 // ============================================================
 
 function deckInit(config) {
@@ -1235,6 +1283,12 @@ if (!vp && !_imageMode) {
 
 if (!_imageMode && vp) {
   SD.renderAll(_D, vp);
+}
+
+// v6.0.2: Pre-fetch external assets for PPTX export
+// Runs after renderAll so layout functions have registered their URLs
+if (window.DeckLayouts && window.DeckLayouts.getPrefetchUrls) {
+  window.DeckLayouts.getPrefetchUrls().forEach(prefetchImage);
 }
 
 var container = _imageMode

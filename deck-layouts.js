@@ -1,12 +1,14 @@
 /* ============================================================
- deck-layouts.js v6.0.2 -- Layout Shortcut Library
+ deck-layouts.js v6.0.3 -- Layout Shortcut Library
  Depends on: standard-deck.js (for SD_CONST, getTitleMetrics)
  Phase 2C: Metrics spacing fix, 5 new layouts
            (pillar, fromto, capability, schedule, coverloc)
  v6.0.1:  Divider gap, pillar title spacing, card title wrap,
           stats dark-mode contrast, duplicate to include
           claude approaches
- v6.0.2:  Client layout extensions — cover-presenter
+ v6.0.2:  Client layout extensions â€” coverPresenter (v1)
+ v6.0.3:  coverPresenter v3 â€” Mazda brand template alignment,
+          custom background/logo/footer, asset prefetch API
  ============================================================ */
 
 (function () {
@@ -129,9 +131,6 @@ function layoutClosing(cfg) {
 
 // ============================================================
 // LAYOUT: DIVIDER  [v6.0.1 FIX: title/subtitle collision]
-// Increased title box height (0.70 → 1.10) to accommodate
-// L1 spaced-caps wrapping. Subtitle now positioned relative
-// to title bottom edge instead of fixed offset.
 // ============================================================
 
 function layoutDivider(cfg) {
@@ -154,8 +153,6 @@ function layoutDivider(cfg) {
 
 // ============================================================
 // LAYOUT: CARDS  [v6.0.1 FIX: title wrap overlap]
-// Increased card title height (0.30 → 0.45) and step
-// (0.40 → 0.55) so 2-line titles don't collide with body.
 // ============================================================
 
 function layoutCards(cfg) {
@@ -204,8 +201,6 @@ function layoutCards(cfg) {
 
 // ============================================================
 // LAYOUT: STATS  [v6.0.1 FIX: dark-mode value contrast]
-// Value color now uses accentLt on dark slides instead of
-// accent, which had insufficient contrast against dkGray.
 // ============================================================
 
 function layoutStats(cfg) {
@@ -243,7 +238,7 @@ return els;
 }
 
 // ============================================================
-// LAYOUT: METRICS — spacing fix: pill top, value below, label below
+// LAYOUT: METRICS
 // ============================================================
 
 function layoutMetrics(cfg) {
@@ -428,10 +423,7 @@ function layoutBullets(cfg) {
 }
 
 // ============================================================
-// NEW LAYOUT: PILLAR  [v6.0.1 FIX: title/subtitle spacing]
-// Increased title height (0.35 → 0.55), pushed subtitle
-// (1.05 → 1.30) and bullets (1.45 → 1.70) down to prevent
-// L3 uppercase titles from overlapping subtitles.
+// LAYOUT: PILLAR  [v6.0.1 FIX: title/subtitle spacing]
 // ============================================================
 
 function layoutPillar(cfg) {
@@ -454,25 +446,19 @@ items.forEach(function(item, i) {
   var textW = cw * C.TEXT_RATIO;
   var textX = cx + (cw - textW) / 2;
 
-  // Column background
   els.push({ type: 's', x: cx, y: startY, w: cw, h: availH, fill: 'cardBg', border: isDark ? null : 'cardBorder' });
 
-  // Pillar number label
   var pillarNum = item.num || String(i + 1).padStart(3, '0');
   els.push({ type: 't', text: 'PILLAR.' + pillarNum, x: textX, y: startY + 0.20, w: textW, h: 0.25, font: 'H', size: 10, color: labelColor });
 
-  // Divider under pillar label
   els.push({ type: 'd', x: textX, y: startY + 0.50, w: textW, color: labelColor });
 
-  // Title — v6.0.1: h increased 0.35 → 0.55
   els.push({ type: 't', text: item.title, x: textX, y: startY + 0.65, w: textW, h: 0.55, font: 'H', size: 18, color: 'title' });
 
-  // Subtitle — v6.0.1: y pushed 1.05 → 1.30
   if (item.subtitle) {
     els.push({ type: 't', text: item.subtitle, x: textX, y: startY + 1.30, w: textW, h: 0.25, font: 'H', size: 11, color: 'muted' });
   }
 
-  // Bullet items — v6.0.1: start pushed 1.45 → 1.70
   var bulletStartY = startY + 1.70;
   var bulletItems = item.items || [];
   bulletItems.forEach(function(bi, bi_idx) {
@@ -481,7 +467,6 @@ items.forEach(function(item, i) {
     els.push({ type: 't', text: bi, x: textX + 0.20, y: by, w: textW - 0.20, h: 0.35, font: 'B', size: 11, color: 'body', valign: 'middle' });
   });
 
-  // Goal at bottom
   if (item.goal) {
     var goalY = startY + availH - 0.70;
     els.push({ type: 'd', x: textX, y: goalY, w: textW, color: 'ltGray' });
@@ -493,7 +478,7 @@ return els;
 }
 
 // ============================================================
-// NEW LAYOUT: FROMTO - before/after with large numbers
+// LAYOUT: FROMTO â€” before/after with large numbers
 // ============================================================
 
 function layoutFromto(cfg) {
@@ -511,7 +496,6 @@ var rtw = rw * C.TEXT_RATIO;
 var rtx = rx + (rw - rtw) / 2;
 var blockH = (availH - C.GAP - 0.40) / 2;
 
-// FROM block
 els.push({ type: 's', x: rx, y: startY, w: rw, h: blockH, fill: 'cardBg', border: isDark ? null : 'cardBorder' });
 els.push({ type: 't', text: 'FROM', x: rtx, y: startY + 0.15, w: rtw, h: 0.20, font: 'H', size: 10, color: 'muted' });
 if (cfg.from) {
@@ -521,11 +505,9 @@ if (cfg.from) {
   }
 }
 
-// Arrow
 var arrowY = startY + blockH + 0.05;
 els.push({ type: 't', text: '\u2193', x: rx + rw / 2 - 0.25, y: arrowY, w: 0.50, h: 0.30, font: 'H', size: 22, color: 'accent', align: 'center' });
 
-// TO block
 var toY = startY + blockH + C.GAP + 0.40;
 var toBlockH = C.CONTENT_END - toY;
 els.push({ type: 's', x: rx, y: toY, w: rw, h: toBlockH, fill: 'accent' });
@@ -537,7 +519,6 @@ if (cfg.to) {
   }
 }
 
-// Left side: description + benefits
 var lx = grid.cols[0].x;
 var lw = grid.cols[0].w;
 var ltw = lw * C.TEXT_RATIO;
@@ -566,7 +547,7 @@ return els;
 }
 
 // ============================================================
-// NEW LAYOUT: CAPABILITY - matrix grid with column headers
+// LAYOUT: CAPABILITY â€” matrix grid with column headers
 // ============================================================
 
 function layoutCapability(cfg) {
@@ -593,7 +574,6 @@ var cellPad = 0.05;
 var rowUnit = rowCount > 0 ? (dataH - C.GAP * (rowCount - 1)) / rowCount : 1.00;
 var cellH = Math.max(0.35, rowUnit - labelH - cellPad);
 
-// Column headers
 columns.forEach(function(colName, ci) {
   if (ci >= colCount || !grid.cols[ci]) return;
   var cx = grid.cols[ci].x;
@@ -602,7 +582,6 @@ columns.forEach(function(colName, ci) {
   els.push({ type: 't', text: colName, x: cx + 0.15, y: startY, w: cw - 0.30, h: headerRowH, font: 'H', size: 11, color: 'white', valign: 'middle' });
 });
 
-// Data rows
 items.forEach(function(row, ri) {
   var ry = dataStartY + ri * (rowUnit + C.GAP);
 
@@ -626,7 +605,7 @@ return els;
 }
 
 // ============================================================
-// NEW LAYOUT: SCHEDULE — time-based agenda table
+// LAYOUT: SCHEDULE â€” time-based agenda table
 // ============================================================
 
 function layoutSchedule(cfg) {
@@ -651,7 +630,6 @@ var actW = 6.50;
 var whoX = actX + actW + C.GAP;
 var whoW = C.SAFE_W - timeW - actW - C.GAP * 2;
 
-// Column headers
 els.push({ type: 's', x: timeX, y: startY, w: timeW, h: headerH, fill: 'accent' });
 els.push({ type: 't', text: 'TIME', x: timeX + 0.10, y: startY, w: timeW - 0.20, h: headerH, font: 'H', size: 10, color: 'white', valign: 'middle' });
 els.push({ type: 's', x: actX, y: startY, w: actW, h: headerH, fill: 'accent' });
@@ -678,7 +656,7 @@ return els;
 }
 
 // ============================================================
-// NEW LAYOUT: COVERLOC - cover with location and date
+// LAYOUT: COVERLOC â€” cover with location and date
 // ============================================================
 
 function layoutCoverloc(cfg) {
@@ -717,66 +695,125 @@ function layoutCoverloc(cfg) {
 }
 
 // ============================================================
-// CLIENT LAYOUT: COVER-PRESENTER — speaker introduction [v6.0.2]
-// Uses renderHeader(cfg) for standard y=1.10 slide titles,
-// followed by bold subtitle, date, and dynamically stacking
-// presenter rows via cfg.items.
-// Max 4 presenter rows before reaching CONTENT_END (6.80").
+// CLIENT ASSETS: COVER-PRESENTER [v6.0.3]
+// ============================================================
+
+var CP_BG_URL = 'https://cdn.jsdelivr.net/gh/hugedeal-lab/standard-deck-v3@main/cover_slide_background.jpg';
+var CP_LOGO_URL = 'https://cdn.jsdelivr.net/gh/hugedeal-lab/standard-deck-v3@main/cover_slide_logo.svg';
+var CP_GRADIENT = 'radial-gradient(ellipse at 75% 75%, #1a2a3a 0%, #111d27 40%, #0b1319 100%)';
+
+var _prefetchUrls = [];
+function registerPrefetch(url) {
+  if (_prefetchUrls.indexOf(url) === -1) _prefetchUrls.push(url);
+}
+registerPrefetch(CP_LOGO_URL);
+registerPrefetch(CP_BG_URL);
+
+// ============================================================
+// CLIENT LAYOUT: COVER-PRESENTER v3 [v6.0.3]
+// Mazda brand template â€” custom background, logo, footer.
+// Mutates cfg to set bgGradient, bgImage, customFooter.
+// Engine reads these after dispatch for rendering/export.
+// Max 3 presenter rows. No tag. No page number.
 // ============================================================
 
 function layoutCoverPresenter(cfg) {
-  var header = renderHeader(cfg);
-  var els = header.els;
-  var startY = header.contentY;
-  var isDark = cfg.dark === 1;
+  var els = [];
+
+  // Set engine flags (read by renderSlide + exportPPTX after dispatch)
+  cfg.customFooter = true;
+  cfg.bgGradient = 'url(' + CP_BG_URL + ') center/cover no-repeat, ' + CP_GRADIENT;
+  cfg.bgImage = CP_BG_URL;
 
   // Full-width grid
   var grid = getGrid(1);
   var cx = grid.cols[0].x;
   var cw = grid.cols[0].w;
+  var textW = cw * 0.65;
 
-  // Semantic accent handling for accessibility
-  var labelColor = isDark ? 'accentLt' : 'accent';
+  var GOLD = '#CAA380';
 
-  // Deck Subtitle
-  var subY = startY + 0.25;
-  if (cfg.subtitle) {
+  // Logo â€” top right per Mazda template (x:11.29 y:0.84 w:1.02 h:0.84)
+  els.push({
+    type: 'img', src: CP_LOGO_URL,
+    x: 11.29, y: 0.84, w: 1.02, h: 0.84
+  });
+
+  // Title â€” Mazda Type, 40pt, normal case (L4), standard kerning
+  var titleY = 1.60;
+  if (cfg.title) {
     els.push({
-      type: 't', text: cfg.subtitle, x: cx, y: subY,
-      w: cw, h: 0.40, font: 'H', size: 24, color: labelColor
+      type: 't', text: cfg.title, x: cx, y: titleY,
+      w: textW, h: 0.80, font: 'H', size: 40,
+      color: 'title', textStyle: 'L4'
     });
   }
 
-  // Deck Date
+  // Subtitle â€” Mazda Type, 23pt, gold (#CAA380), normal case
+  var subY = titleY + 1.05;
+  if (cfg.subtitle) {
+    els.push({
+      type: 't', text: cfg.subtitle, x: cx, y: subY,
+      w: textW, h: 0.45, font: 'H', size: 23,
+      color: GOLD, textStyle: 'L4'
+    });
+  }
+
+  // Date â€” Mazda Type, 18pt, gold, ALL CAPS (L3)
   var dateY = subY + 0.50;
   if (cfg.date) {
     els.push({
       type: 't', text: cfg.date, x: cx, y: dateY,
-      w: cw, h: 0.30, font: 'B', size: 16, color: 'body'
+      w: textW, h: 0.35, font: 'H', size: 18,
+      color: GOLD, textStyle: 'L3'
     });
   }
 
-  // Iterating Presenters via parameterized cfg.items
+  // Presenters â€” stacked below date, max 3
   var items = cfg.items || [];
-  var presStartY = dateY + 1.20;
+  var presStartY = dateY + 1.30;
+  var rowStep = 0.65;
 
   items.forEach(function(item, i) {
-    var rowY = presStartY + (i * 0.90);
-
-    // Boundary check: elements must not bleed past CONTENT_END (6.80")
-    if (rowY + 0.70 <= C.CONTENT_END) {
+    var rowY = presStartY + (i * rowStep);
+    if (rowY + 0.56 <= 6.45) {
+      // Name â€” Mazda Type header, ALL CAPS (L3), 18pt, white
       els.push({
         type: 't', text: item.title, x: cx, y: rowY,
-        w: cw, h: 0.35, font: 'H', size: 18, color: 'title'
+        w: textW, h: 0.28, font: 'H', size: 18,
+        color: 'white', textStyle: 'L3'
       });
+      // Department â€” Mazda Type body, mixed case (L4), 18pt, white
       if (item.text) {
         els.push({
-          type: 't', text: item.text, x: cx, y: rowY + 0.35,
-          w: cw, h: 0.35, font: 'B', size: 16, color: 'body'
+          type: 't', text: item.text, x: cx, y: rowY + 0.28,
+          w: textW, h: 0.28, font: 'B', size: 18,
+          color: 'white', textStyle: 'L4'
         });
       }
     }
   });
+
+  // White divider line above footer
+  els.push({
+    type: 'd', x: cx, y: 6.55, w: cw, color: 'white'
+  });
+
+  // Custom footer â€” two lines, Mazda Type header (L3), 8pt, white
+  if (cfg.footerOrg) {
+    els.push({
+      type: 't', text: cfg.footerOrg, x: cx, y: 6.65,
+      w: 6.00, h: 0.18, font: 'H', size: 8,
+      color: 'white', textStyle: 'L3'
+    });
+  }
+  if (cfg.footerDept) {
+    els.push({
+      type: 't', text: cfg.footerDept, x: cx, y: 6.83,
+      w: 6.00, h: 0.18, font: 'H', size: 8,
+      color: 'white', textStyle: 'L3'
+    });
+  }
 
   return els;
 }
@@ -802,7 +839,7 @@ var LAYOUT_MAP = {
   capability:     layoutCapability,
   schedule:       layoutSchedule,
   coverloc:       layoutCoverloc,
-  coverPresenter: layoutCoverPresenter    // [v6.0.2] Client extension
+  coverPresenter: layoutCoverPresenter
 };
 
 function dispatch(slideData) {
@@ -818,7 +855,8 @@ function dispatch(slideData) {
 // ============================================================
 
 window.DeckLayouts = {
-  dispatch: dispatch
+  dispatch: dispatch,
+  getPrefetchUrls: function () { return _prefetchUrls; }
 };
 
 })();
