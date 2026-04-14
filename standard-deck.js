@@ -1,5 +1,5 @@
 /* ============================================================
- standard-deck.js v6.0.1 -- Core Rendering Engine
+ standard-deck.js v6.0.2 -- Core Rendering Engine
  Standard Presentation Builder
  Phase 2A: Pantone colors, background modes, cream/deep
  v6.0.1:  customFooter support, bgGradient support,
@@ -399,8 +399,10 @@ function renderElement(el, isDark) {
 }
 
 function renderText(el, isDark) {
-  var div = document.createElement('div');
-  var isTitle = (el.size >= 30);
+var div = document.createElement('div');
+div.setAttribute('contenteditable', 'true');
+div.setAttribute('spellcheck', 'false');
+var isTitle = (el.size >= 30);
   div.style.cssText = 'position:absolute;box-sizing:border-box;word-wrap:break-word;overflow:' + (isTitle ? 'visible' : 'hidden') + ';';
   div.style.left     = toX(el.x) + 'px';
   div.style.top      = toY(el.y) + 'px';

@@ -1,5 +1,5 @@
 /* ============================================================
- deck-shell.js v6.0.2 -- UI Shell & PPTX Export
+ deck-shell.js v6.0.3 -- UI Shell & PPTX Export
  Depends on: standard-deck.js, deck-layouts.js, pptxgen.bundle.js
  Phase 2A: Background picker, Pantone PPTX masters, footer config
  v6.0.1:  charSpacing for L1-L5, card shadows, chart polish,
@@ -7,6 +7,9 @@
  v6.0.2:  customFooter support, no-footer PPTX masters,
           image prefetch cache, bgImage slide backgrounds,
           exportImage src support for external URLs
+ v6.0.3:  Unicode escape sequences for all innerHTML emoji/icons
+          to prevent encoding corruption. Contenteditable CSS
+          for inline text editing in preview.
  ============================================================
  WARNING: PptxGenJS mutates option objects in-place (e.g.
  converting shadow/margin values to EMU). Never share option
@@ -36,9 +39,6 @@ var _imageCache    = {};
 
 // ============================================================
 // IMAGE PREFETCH CACHE [v6.0.2]
-// Uses Image() constructor (governed by img-src CSP, not
-// connect-src) to load external assets for PPTX export.
-// Gracefully skips on CORS or CSP failures.
 // ============================================================
 
 function prefetchImage(url) {
@@ -64,7 +64,7 @@ function prefetchImage(url) {
 }
 
 // ============================================================
-// STYLES
+// STYLES [v6.0.3: contenteditable CSS]
 // ============================================================
 
 function injectStyles() {
@@ -286,7 +286,10 @@ var css = [
   '}',
   '.sd-toast-ok   { background: #28A745; color: #FFF; }',
   '.sd-toast-warn { background: #E67E00; color: #FFF; }',
-  '.sd-toast-bad  { background: #C12638; color: #FFF; }'
+  '.sd-toast-bad  { background: #C12638; color: #FFF; }',
+  '[contenteditable] { cursor: text; }',
+  '[contenteditable]:focus { outline: 1px dashed rgba(255,255,255,0.3); outline-offset: 2px; }',
+  '[contenteditable]:hover { outline: 1px dashed rgba(255,255,255,0.15); outline-offset: 2px; }'
 ].join('\n');
 
 var style = document.createElement('style');
@@ -341,7 +344,7 @@ updateNotes();
 }
 
 // ============================================================
-// TOP TOOLBAR
+// TOP TOOLBAR [v6.0.3: Unicode escapes for all special chars]
 // ============================================================
 
 function buildToolbar(container) {
@@ -352,18 +355,18 @@ var toolbar = document.createElement('div');
 toolbar.className = 'sd-toolbar';
 toolbar.innerHTML = [
   '<div class="sd-toolbar-left">',
-  '  <button class="sd-btn sd-prev" title="Previous slide">â—€</button>',
+  '  <button class="sd-btn sd-prev" title="Previous slide">\u25C0</button>',
   '  <span class="sd-slide-counter">',
   '    Slide <span class="sd-current">1</span>',
   '    / <span class="sd-total">' + _totalSlides + '</span>',
   '  </span>',
-  '  <button class="sd-btn sd-next" title="Next slide">â–¶</button>',
+  '  <button class="sd-btn sd-next" title="Next slide">\u25B6</button>',
   '</div>',
   '<div class="sd-toolbar-right">',
-  '  <button class="sd-btn sd-color-btn" title="Color & Background">ðŸŽ¨ Color</button>',
-  '  <button class="sd-btn sd-notes-btn" title="Toggle Notes">ðŸ“ Notes</button>',
-  '  <button class="sd-btn sd-logo-btn" title="Upload Logo">ðŸ–¼ Logo</button>',
-  '  <button class="sd-btn sd-btn-download sd-download-btn" title="Download PPTX">â¬‡ Download</button>',
+  '  <button class="sd-btn sd-color-btn" title="Color & Background">\uD83C\uDFA8 Color</button>',
+  '  <button class="sd-btn sd-notes-btn" title="Toggle Notes">\uD83D\uDCDD Notes</button>',
+  '  <button class="sd-btn sd-logo-btn" title="Upload Logo">\uD83D\uDDBC Logo</button>',
+  '  <button class="sd-btn sd-btn-download sd-download-btn" title="Download PPTX">\u2B07 Download</button>',
   '</div>'
 ].join('');
 
@@ -519,7 +522,7 @@ if (toolbar) {
 }
 
 // ============================================================
-// NOTES SIDE PANEL
+// NOTES SIDE PANEL [v6.0.3: Unicode close button]
 // ============================================================
 
 function buildNotesPanel(container) {
@@ -532,7 +535,7 @@ panel.style.display = 'none';
 panel.innerHTML = [
   '<div class="sd-notes-header">',
   '  <span>Speaker Notes</span>',
-  '  <button class="sd-btn sd-notes-close">âœ•</button>',
+  '  <button class="sd-btn sd-notes-close">\u2715</button>',
   '</div>',
   '<div class="sd-notes-content">No speaker notes for this slide.</div>'
 ].join('');
@@ -568,7 +571,7 @@ panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
 // ============================================================
-// LOGO MANAGER
+// LOGO MANAGER [v6.0.3: Unicode icons]
 // ============================================================
 
 function buildLogoPanel(container) {
@@ -581,10 +584,10 @@ panel.style.display = 'none';
 panel.innerHTML = [
   '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">',
   '  <span style="color:#F5F5F5;font-weight:600;font-size:13px;">Logo Manager</span>',
-  '  <button class="sd-btn sd-logo-close">âœ•</button>',
+  '  <button class="sd-btn sd-logo-close">\u2715</button>',
   '</div>',
   '<div class="sd-logo-preview"><span style="color:#666;font-size:13px;">No logo uploaded</span></div>',
-  '<button class="sd-btn sd-logo-upload" style="margin-bottom:12px;">ðŸ“ Upload Logo</button>',
+  '<button class="sd-btn sd-logo-upload" style="margin-bottom:12px;">\uD83D\uDCC1 Upload Logo</button>',
   '<input type="file" class="sd-logo-file" accept=".png,.jpg,.jpeg,.svg" style="display:none;">',
   '<div class="sd-logo-controls" style="display:none;">',
   '  <label>Size:</label>',
@@ -750,6 +753,7 @@ setTimeout(function () {
 function setupKeyboard() {
 document.addEventListener('keydown', function (e) {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.target.getAttribute && e.target.getAttribute('contenteditable') === 'true') return;
   switch (e.key) {
     case 'ArrowLeft':
       e.preventDefault();
@@ -795,7 +799,7 @@ if (_customLogo) applyLogoToSlides();
 }
 
 // ============================================================
-// V6.0: PPTX EXPORT [v6.0.2: customFooter, bgImage, no-footer masters]
+// PPTX EXPORT [v6.0.2: customFooter, bgImage, no-footer masters]
 // ============================================================
 
 function exportPPTX() {
@@ -855,7 +859,6 @@ try {
     ]
   });
 
-  // v6.0.2: No-footer masters for slides with custom footers
   pptx.defineSlideMaster({
     title: 'SD_DARK_NOFOOTER',
     background: { color: darkBgColor }
@@ -870,14 +873,12 @@ try {
     var isDark = !!slideData.dark;
     var master = isDark ? 'SD_DARK' : 'SD_LIGHT';
 
-    // v6.0.2: Use no-footer master for slides with custom footer
     if (slideData.customFooter) {
       master = isDark ? 'SD_DARK_NOFOOTER' : 'SD_LIGHT_NOFOOTER';
     }
 
     var slide = pptx.addSlide({ masterName: master });
 
-    // v6.0.2: Override background with cached image if available
     if (slideData.bgImage && _imageCache[slideData.bgImage]) {
       slide.background = { data: _imageCache[slideData.bgImage] };
     }
@@ -894,7 +895,6 @@ try {
       exportElement(slide, el, isDark, accent, pptx);
     });
 
-    // v6.0.2: Guard num export with customFooter check
     if (slideData.num && !slideData.customFooter) {
       var numColor = isDark ? '8B8C81' : '53544A';
 
@@ -1123,12 +1123,10 @@ var chartOpts = {
   showLegend: opts.showLegend || false,
   legendPos: opts.legendPos || 'b',
   legendColor: SD.colorForPptx('body', isDark),
-
   chartArea: {
     fill: { color: isDark ? '363732' : 'FFFFFF' },
     roundedCorners: true
   },
-
   valGridLine: {
     color: isDark ? '53544A' : 'E2E8F0',
     size: 0.5
@@ -1142,7 +1140,6 @@ if (el.chartType === 'bar' || el.chartType === 'line' || el.chartType === 'area'
   chartOpts.valAxisHidden = opts.valAxisHidden || false;
   chartOpts.catAxisLabelColor = SD.colorForPptx('body', isDark);
   chartOpts.valAxisLabelColor = SD.colorForPptx('body', isDark);
-
   if (el.chartType === 'bar') {
     chartOpts.dataLabelPosition = opts.dataLabelPosition || 'outEnd';
   }
@@ -1199,12 +1196,7 @@ slide.addTable(tableRows, {
 });
 }
 
-// ============================================================
-// IMAGE EXPORTER [v6.0.2: src support with prefetch cache]
-// ============================================================
-
 function exportImage(slide, el) {
-  // v6.0.2: External URL images via prefetch cache
   if (el.src) {
     var cached = _imageCache[el.src];
     if (cached) {
@@ -1214,7 +1206,6 @@ function exportImage(slide, el) {
     }
     return;
   }
-  // Existing ref-based image logic
   var imgEl = document.getElementById(el.ref);
   if (!imgEl) return;
   var img = imgEl.querySelector('img');
@@ -1227,21 +1218,12 @@ function exportImage(slide, el) {
 // UTILITIES
 // ============================================================
 
-function getLogoPosition(logo) {
-var pos = logo.position || 'bottom-right';
-var wInches = logo.width / 144;
-return {
-  x: pos.indexOf('right') > -1 ? 13.33 - wInches - 0.3 : 0.3,
-  y: pos.indexOf('bottom') > -1 ? 7.0 : 0.15
-};
-}
-
 function sanitizeFileName(title) {
 return title.replace(/[^a-zA-Z0-9\s_-]/g, '').replace(/\s+/g, '_').substring(0, 40);
 }
 
 // ============================================================
-// V6.0: deckInit [v6.0.2: asset prefetch after renderAll]
+// deckInit [v6.0.2: asset prefetch after renderAll]
 // ============================================================
 
 function deckInit(config) {
@@ -1285,8 +1267,6 @@ if (!_imageMode && vp) {
   SD.renderAll(_D, vp);
 }
 
-// v6.0.2: Pre-fetch external assets for PPTX export
-// Runs after renderAll so layout functions have registered their URLs
 if (window.DeckLayouts && window.DeckLayouts.getPrefetchUrls) {
   window.DeckLayouts.getPrefetchUrls().forEach(prefetchImage);
 }
