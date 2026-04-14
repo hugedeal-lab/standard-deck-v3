@@ -1,9 +1,13 @@
 /* ============================================================
- standard-deck.js v6.0.2 -- Core Rendering Engine
+ standard-deck.js v6.0.3 -- Core Rendering Engine
  Standard Presentation Builder
  Phase 2A: Pantone colors, background modes, cream/deep
  v6.0.1:  customFooter support, bgGradient support,
           renderImage src support for external URLs
+ v6.0.2:  contenteditable on text elements
+ v6.0.3:  Mazda MNAO palette (#040B13, #535B69, #8D7057,
+          #CAA380), H weight 500 (Medium), Arial fallback,
+          footer 7pt, warmBrown default accent
  ============================================================ */
 
 (function () {
@@ -71,46 +75,50 @@ var SAFE = {
 };
 
 // ============================================================
-// V6.0: PANTONE-ALIGNED PALETTE
+// V6.0.3: MAZDA MNAO PALETTE
 // ============================================================
 
 var PALETTE = {
-  black:     '#191919',
-  deepBlack: '#12171F',
-  white:     '#F5F5F5',
-  cream:     '#F5F1EB',
-  dkGray:    '#363732',
-  mdGray:    '#53544A',
-  gray:      '#8B8C81',
-  ltGray:    '#C2C4B8',
+  black:     '#040B13',   // Precision Blue 1
+  deepBlack: '#040B13',   // Same as PB1 (single dark)
+  white:     '#FFFFFF',
+  cream:     '#F5F1EB',   // Brand bgMode warm light
+  dkGray:    '#535B69',   // Precision Blue 2
+  mdGray:    '#333333',
+  gray:      '#999999',
+  ltGray:    '#CCCCCC',
   ok:        '#28A745',
   warn:      '#E67E00',
   bad:       '#C12638'
 };
 
+// V6.0.3: warmBrown is the new default accent family
 var ACCENT_FAMILIES = {
+  warmBrown:{ light: '#CAA380', mid: '#8D7057', dark: '#040B13' },
   red:      { light: '#E5D0C9', mid: '#8E1C2E', dark: '#5C1220' },
   navy:     { light: '#C4C6D0', mid: '#002544', dark: '#001830' },
   green:    { light: '#CACEC7', mid: '#00412E', dark: '#002B1E' },
   plum:     { light: '#D4C8D1', mid: '#4B1848', dark: '#2F0F2E' },
   gold:     { light: '#F9D28C', mid: '#C4962C', dark: '#8B6A00' },
   teal:     { light: '#9ECFCF', mid: '#1A7A7A', dark: '#0F4E4E' },
-  charcoal: { light: '#C2C4B8', mid: '#53544A', dark: '#363732' }
+  charcoal: { light: '#CCCCCC', mid: '#535B69', dark: '#040B13' }
 };
 
-var CHART_SERIES = ['#8E1C2E', '#002544', '#00412E', '#4B1848', '#000000'];
-var CHART_SERIES_LIGHT = ['#B67367', '#5A657E', '#627967', '#89657F', '#888888'];
+// V6.0.3: Chart series using MNAO palette
+var CHART_SERIES = ['#8D7057', '#040B13', '#535B69', '#CAA380', '#333333'];
+var CHART_SERIES_LIGHT = ['#CAA380', '#999999', '#8D7057', '#CCCCCC', '#666666'];
 
-var _accentLight = '#E5D0C9';
-var _accentMid   = '#8E1C2E';
-var _accentDark  = '#5C1220';
-var _familyName  = 'red';
+var _accentLight = '#CAA380';   // Warm Brown 2
+var _accentMid   = '#8D7057';   // Warm Brown 1
+var _accentDark  = '#040B13';   // Precision Blue 1
+var _familyName  = 'warmBrown';
 
 var _bgMode = 'standard';
 
+// V6.0.3: H = Medium (500), Arial fallback
 var FONT_MAP = {
-  H: { face: 'Mazda Type, Classico URW, Montserrat, sans-serif', weight: 700 },
-  B: { face: 'Mazda Type, Classico URW, Montserrat, sans-serif', weight: 400 }
+  H: { face: 'Mazda Type, Arial, sans-serif', weight: 500 },
+  B: { face: 'Mazda Type, Arial, sans-serif', weight: 400 }
 };
 
 var LIMITS = {
@@ -120,19 +128,20 @@ var LIMITS = {
   coverTitleChars: 40, titleChars: 48
 };
 
+// V6.0.3: footnote min reduced to 7pt
 var MIN_SIZES = {
   coverTitle: 36, title: 33, cardTitle: 21,
   subtitle: 18, body: 15, table: 12,
-  statValue: 42, tag: 10, footnote: 9
+  statValue: 42, tag: 10, footnote: 7
 };
 
 // ============================================================
-// V6.0: TYPOGRAPHY HIERARCHY (auto-applied)
+// V6.0.3: TYPOGRAPHY — all H weights now 500 (Medium)
 // ============================================================
 
 var TEXT_STYLES = {
-  L1: { transform: 'uppercase', spacing: '0.25em', weight: 700 },
-  L2: { transform: 'uppercase', spacing: '0.05em', weight: 700 },
+  L1: { transform: 'uppercase', spacing: '0.25em', weight: 500 },
+  L2: { transform: 'uppercase', spacing: '0.05em', weight: 500 },
   L3: { transform: 'uppercase', spacing: '0.08em', weight: 500 },
   L4: { transform: 'none',      spacing: 'normal', weight: 400 },
   L5: { transform: 'uppercase', spacing: '0.10em', weight: 400 }
@@ -168,7 +177,7 @@ return 'L4';
 }
 
 // ============================================================
-// V6.0: DATE GENERATION
+// DATE GENERATION
 // ============================================================
 
 var MONTHS = ['JANUARY','FEBRUARY','MARCH','APRIL','MAY',
@@ -181,7 +190,7 @@ function getFooterDate() {
 }
 
 // ============================================================
-// V6.0: COLOR RESOLUTION (bgMode-aware)
+// COLOR RESOLUTION (bgMode-aware)
 // ============================================================
 
 function resolveColor(token, isDark) {
@@ -215,7 +224,7 @@ return resolveColor(token, isDark).replace('#', '');
 }
 
 // ============================================================
-// V6.0: BACKGROUND MODE
+// BACKGROUND MODE
 // ============================================================
 
 function setBgMode(mode) {
@@ -398,11 +407,12 @@ function renderElement(el, isDark) {
   return fn(el, isDark);
 }
 
+// V6.0.2: contenteditable, V6.0.3: weight 500 for L1
 function renderText(el, isDark) {
-var div = document.createElement('div');
-div.setAttribute('contenteditable', 'true');
-div.setAttribute('spellcheck', 'false');
-var isTitle = (el.size >= 30);
+  var div = document.createElement('div');
+  div.setAttribute('contenteditable', 'true');
+  div.setAttribute('spellcheck', 'false');
+  var isTitle = (el.size >= 30);
   div.style.cssText = 'position:absolute;box-sizing:border-box;word-wrap:break-word;overflow:' + (isTitle ? 'visible' : 'hidden') + ';';
   div.style.left     = toX(el.x) + 'px';
   div.style.top      = toY(el.y) + 'px';
@@ -424,7 +434,8 @@ var isTitle = (el.size >= 30);
   var ts = TEXT_STYLES[textStyle];
   div.style.textTransform = ts.transform;
   div.style.letterSpacing = ts.spacing;
-  if (textStyle === 'L1') div.style.fontWeight = 700;
+  // V6.0.3: L1 uses Medium (500), not Bold (700)
+  if (textStyle === 'L1') div.style.fontWeight = 500;
 
   if (el.valign === 'middle' || el.valign === 'bottom') {
     div.style.display = 'flex';
@@ -540,7 +551,7 @@ function renderChart(el, isDark) {
   var data = el.data || [];
   var opts = el.opts || {};
   if (opts.showTitle && opts.title) {
-    ctx.font = '600 ' + ptToPx(12) + 'px DM Sans, sans-serif';
+    ctx.font = '500 ' + ptToPx(12) + 'px Mazda Type, Arial, sans-serif';
     ctx.fillStyle = resolveColor('title', isDark);
     ctx.fillText(opts.title, 20, ptToPx(14) + 10);
   }
@@ -583,14 +594,14 @@ function renderBarChart(ctx, data, opts, cw, ch, isDark) {
       ctx.fillStyle = colors[si];
       ctx.fillRect(bx, by, barW - 2, bh);
       if (opts.showValue) {
-        ctx.font = '500 ' + ptToPx(8) + 'px DM Sans, sans-serif';
+        ctx.font = '500 ' + ptToPx(8) + 'px Mazda Type, Arial, sans-serif';
         ctx.fillStyle = resolveColor('title', isDark);
         ctx.textAlign = 'center';
         ctx.fillText(formatVal(val), bx + barW / 2, by - 6);
       }
     });
   });
-  ctx.font = ptToPx(8) + 'px DM Sans, sans-serif';
+  ctx.font = ptToPx(8) + 'px Mazda Type, Arial, sans-serif';
   ctx.fillStyle = resolveColor('muted', isDark);
   ctx.textAlign = 'center';
   labels.forEach(function (lbl, i) {
@@ -644,7 +655,7 @@ function renderLineChart(ctx, data, opts, cw, ch, isDark, isArea) {
       ctx.fill();
     });
   });
-  ctx.font = ptToPx(8) + 'px DM Sans, sans-serif';
+  ctx.font = ptToPx(8) + 'px Mazda Type, Arial, sans-serif';
   ctx.fillStyle = resolveColor('muted', isDark);
   ctx.textAlign = 'center';
   labels.forEach(function (lbl, i) {
@@ -683,7 +694,7 @@ function renderPieChart(ctx, data, opts, cw, ch, isDark, isDoughnut) {
       var labelR   = isDoughnut ? (radius + hole) / 2 : radius * 0.65;
       var lx = cx + Math.cos(midAngle) * labelR;
       var ly = cy + Math.sin(midAngle) * labelR;
-      ctx.font = '600 ' + ptToPx(9) + 'px DM Sans, sans-serif';
+      ctx.font = '500 ' + ptToPx(9) + 'px Mazda Type, Arial, sans-serif';
       ctx.fillStyle = '#FFFFFF';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -694,7 +705,7 @@ function renderPieChart(ctx, data, opts, cw, ch, isDark, isDoughnut) {
   });
   if (opts.showLegend !== false) {
     var legendY = cy + radius + 30;
-    ctx.font = ptToPx(8) + 'px DM Sans, sans-serif';
+    ctx.font = ptToPx(8) + 'px Mazda Type, Arial, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
     labels.forEach(function (lbl, i) {
@@ -739,7 +750,7 @@ function renderTable(el, isDark) {
   container.style.width  = toX(el.w) + 'px';
   container.style.height = toY(el.h) + 'px';
   var table = document.createElement('table');
-  table.style.cssText = 'width:100%;border-collapse:collapse;font-family:DM Sans,sans-serif;font-size:' + ptToPx(10) + 'px;';
+  table.style.cssText = 'width:100%;border-collapse:collapse;font-family:Mazda Type,Arial,sans-serif;font-size:' + ptToPx(10) + 'px;';
   var headers = el.headers || [];
   var rows    = el.rows || [];
   var colW    = el.colW;
@@ -749,7 +760,7 @@ function renderTable(el, isDark) {
     headers.forEach(function (h, i) {
       var th = document.createElement('th');
       th.textContent = h;
-      th.style.cssText = 'padding:12px 16px;text-align:left;background:' + resolveColor('accent', isDark) + ';color:#FFFFFF;font-weight:600;border-bottom:2px solid ' + resolveColor('ltGray', isDark) + ';';
+      th.style.cssText = 'padding:12px 16px;text-align:left;background:' + resolveColor('accent', isDark) + ';color:#FFFFFF;font-weight:500;border-bottom:2px solid ' + resolveColor('ltGray', isDark) + ';';
       if (colW && colW[i]) th.style.width = toX(colW[i]) + 'px';
       tr.appendChild(th);
     });
@@ -774,7 +785,7 @@ function renderTable(el, isDark) {
 }
 
 // ============================================================
-// IMAGE RENDERER [v6.0.1: added src support for external URLs]
+// IMAGE RENDERER
 // ============================================================
 
 function renderImage(el) {
@@ -796,7 +807,7 @@ function renderImage(el) {
 }
 
 // ============================================================
-// SLIDE RENDERING [v6.0.1: bgGradient + customFooter support]
+// SLIDE RENDERING
 // ============================================================
 
 function renderSlide(slideData, index) {
@@ -813,7 +824,6 @@ function renderSlide(slideData, index) {
     els = slideData.els || [];
   }
 
-  // Custom background gradient (layout functions may set via cfg mutation)
   if (slideData.bgGradient) {
     slide.style.background = slideData.bgGradient;
   }
@@ -824,17 +834,16 @@ function renderSlide(slideData, index) {
     slide.appendChild(renderElement(el, isDark));
   });
 
-  // Footer (skipped if layout provides custom footer via cfg.customFooter)
   if (!slideData.customFooter) {
     var mutedColor = resolveColor('muted', isDark);
     var dateDiv = document.createElement('div');
     dateDiv.style.cssText = 'position:absolute;bottom:24px;left:40px;'
-      + 'font-size:' + ptToPx(9) + 'px;'
-      + 'font-weight:500;'
+      + 'font-size:' + ptToPx(7) + 'px;'
+      + 'font-weight:400;'
       + 'letter-spacing:0.15em;'
       + 'text-transform:uppercase;'
       + 'color:' + mutedColor + ';'
-      + 'font-family:DM Sans,sans-serif;';
+      + 'font-family:Mazda Type,Arial,sans-serif;';
     dateDiv.textContent = _footerText || getFooterDate();
     slide.appendChild(dateDiv);
 
@@ -842,7 +851,7 @@ function renderSlide(slideData, index) {
       var footerRight = document.createElement('div');
       footerRight.style.cssText = 'position:absolute;bottom:24px;'
         + 'right:40px;display:flex;align-items:center;gap:12px;'
-        + 'font-family:DM Sans,sans-serif;';
+        + 'font-family:Mazda Type,Arial,sans-serif;';
 
       var logoSlot = document.createElement('div');
       logoSlot.className = 'logo-footer-slot';
@@ -855,13 +864,13 @@ function renderSlide(slideData, index) {
 
       var numSpan = document.createElement('span');
       numSpan.style.cssText = 'font-size:' + ptToPx(10) + 'px;'
-        + 'font-weight:600;color:' + mutedColor + ';';
+        + 'font-weight:500;color:' + mutedColor + ';';
       numSpan.textContent = slideData.num;
       footerRight.appendChild(numSpan);
 
       slide.appendChild(footerRight);
     }
-  } // end customFooter check
+  }
 
   return slide;
 }
@@ -902,7 +911,7 @@ function adjustBrightness(hex, amount) {
 }
 
 // ============================================================
-// V6.0: CONFIGURABLE FOOTER
+// CONFIGURABLE FOOTER
 // ============================================================
 
 var _footerText = null;
