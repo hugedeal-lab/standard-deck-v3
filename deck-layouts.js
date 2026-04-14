@@ -714,7 +714,7 @@ function layoutCoverPresenter(cfg) {
   if (cfg.title) {
     els.push({
       type: 't', text: cfg.title, x: cx, y: titleY,
-      w: textW, h: 0.80, font: 'H', size: 40,
+      w: textW, h: 0.80, font: 'B', size: 40,
       color: 'title', textStyle: 'L2'
     });
   }
@@ -724,7 +724,7 @@ function layoutCoverPresenter(cfg) {
   if (cfg.subtitle) {
     els.push({
       type: 't', text: cfg.subtitle, x: cx, y: subY,
-      w: textW, h: 0.45, font: 'H', size: 23,
+      w: textW, h: 0.45, font: 'B', size: 23,
       color: GOLD, textStyle: 'L3'
     });
   }
@@ -734,7 +734,7 @@ function layoutCoverPresenter(cfg) {
   if (cfg.date) {
     els.push({
       type: 't', text: cfg.date, x: cx, y: dateY,
-      w: textW, h: 0.35, font: 'H', size: 18,
+      w: textW, h: 0.35, font: 'B', size: 18,
       color: GOLD, textStyle: 'L3'
     });
   }
