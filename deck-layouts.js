@@ -1,11 +1,12 @@
 /* ============================================================
- deck-layouts.js v6.0.9 -- Layout Shortcut Library
+ deck-layouts.js v6.0.10 -- Layout Shortcut Library
  v6.0.5:  section layout — asymmetric dark divider
  v6.0.7:  prose — evaluator-precise narrative layout
  v6.0.8:  twoCols — 2-column image + text spotlights
- v6.0.9:  Fixed duplicate IIFE structure. coverPresenter v5:
-          dynamic title height for 2-line wrap. twoCols:
-          instructional placeholder text replaces pill badge.
+ v6.0.9:  Fixed duplicate IIFE. coverPresenter v5 dynamic title.
+ v6.0.10: twoCols image placeholders export as addImage for
+          native "Change Picture..." right-click support in PPTX.
+          Preview instruction text marked _skipExport.
  ============================================================ */
 
 (function () {
@@ -289,8 +290,7 @@ registerPrefetch(CP_LOGO_URL);
 registerPrefetch(CP_BG_URL);
 
 // ============================================================
-// CLIENT: COVER-PRESENTER v5 [v6.0.9]
-// Dynamic title height for 2-line wrap prevention.
+// CLIENT: COVER-PRESENTER v5 — dynamic title height [v6.0.9]
 // ============================================================
 
 function layoutCoverPresenter(cfg) {
@@ -305,10 +305,8 @@ function layoutCoverPresenter(cfg) {
   var tw = cw * 0.65;
   var GOLD = '#CAA380';
 
-  // Logo — top right per Mazda template
   els.push({ type:'img', src:CP_LOGO_URL, x:11.29, y:0.84, w:1.02, h:0.84 });
 
-  // Title — dynamic height: short titles 0.80, long titles 1.20 [v6.0.9]
   var tY = 1.60;
   var titleLen = (cfg.title || '').length;
   var titleH = titleLen > 25 ? 1.20 : 0.80;
@@ -317,21 +315,18 @@ function layoutCoverPresenter(cfg) {
       font:'B', size:40, color:'title', textStyle:'L2' });
   }
 
-  // Subtitle — Y adjusts based on title height [v6.0.9]
   var sY = tY + (titleLen > 25 ? 1.40 : 1.05);
   if (cfg.subtitle) {
     els.push({ type:'t', text:cfg.subtitle, x:cx, y:sY, w:tw, h:0.45,
       font:'B', size:23, color:GOLD, textStyle:'L3' });
   }
 
-  // Date
   var dY = sY + 0.50;
   if (cfg.date) {
     els.push({ type:'t', text:cfg.date, x:cx, y:dY, w:tw, h:0.35,
       font:'B', size:18, color:GOLD, textStyle:'L3' });
   }
 
-  // Presenters — stacked below date
   var items = cfg.items || [];
   var presStartY = dY + 1.30;
   var rowStep = 0.75;
@@ -348,10 +343,8 @@ function layoutCoverPresenter(cfg) {
     }
   });
 
-  // White divider line above footer
   els.push({ type:'d', x:cx, y:6.55, w:cw, color:'white' });
 
-  // Custom footer
   if (cfg.footerOrg) {
     els.push({ type:'t', text:cfg.footerOrg, x:cx, y:6.65, w:6.00, h:0.18,
       font:'H', size:8, color:'white', textStyle:'L3' });
@@ -399,8 +392,6 @@ function layoutSection(cfg) {
 
 // ============================================================
 // CLIENT: PROSE — basic narrative slide
-// Uses renderHeader. Half-width col2 text column.
-// Engine content footer handles footer + page number.
 // ============================================================
 
 function layoutProse(cfg) {
@@ -432,9 +423,9 @@ function layoutProse(cfg) {
 }
 
 // ============================================================
-// CLIENT: TWOCOLS — 2-column image + text spotlights [v6.0.9]
-// 16:9 image placeholders with instructional label.
-// User replaces in PPTX: right-click shape → Picture Fill.
+// CLIENT: TWOCOLS — 2-column image + text spotlights [v6.0.10]
+// Image placeholders export as addImage via _imgPlaceholder flag.
+// PPTX users: right-click image → "Change Picture..." to replace.
 // ============================================================
 
 function layoutTwoCols(cfg) {
@@ -452,17 +443,19 @@ function layoutTwoCols(cfg) {
     var cw = grid.cols[i].w;
     var imgH = cw * (9 / 16);
 
-    // Image bounding box (PPTX Picture Fill mask)
+    // Image placeholder — exported as addImage for "Change Picture..." [v6.0.10]
     els.push({ type:'s', x:cx, y:startY, w:cw, h:imgH,
       fill: isDark ? 'cardBg' : 'white',
-      border: isDark ? null : 'cardBorder' });
+      border: isDark ? null : 'cardBorder',
+      _imgPlaceholder: true });
 
-    // Instructional label centered in placeholder [v6.0.9]
-    els.push({ type:'t', text:'RIGHT-CLICK \u2192 PICTURE FILL',
-      x:cx + 0.20, y:startY + (imgH / 2) - 0.15,
-      w:cw - 0.40, h:0.30,
+    // Instruction text — preview only, baked into placeholder image for PPTX
+    els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+      x: cx + 0.20, y: startY + (imgH / 2) - 0.15,
+      w: cw - 0.40, h: 0.30,
       font:'H', size:9, color: isDark ? 'muted' : 'gray',
-      align:'center', valign:'middle' });
+      align:'center', valign:'middle',
+      _skipExport: true });
 
     // Subtitle (L3 uppercase via engine)
     var textY = startY + imgH + 0.20;

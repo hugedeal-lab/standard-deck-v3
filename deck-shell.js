@@ -1,11 +1,14 @@
 /* ============================================================
- deck-shell.js v6.0.4 -- UI Shell & PPTX Export
+ deck-shell.js v6.0.5 -- UI Shell & PPTX Export
  v6.0.1:  charSpacing, card shadows, chart polish
  v6.0.2:  customFooter, no-footer masters, image prefetch,
           bgImage, exportImage src
  v6.0.3:  Unicode escapes for innerHTML, contenteditable CSS
  v6.0.4:  Content footer PPTX masters, 3-way master selection,
           contentFooter config in deckInit
+ v6.0.5:  generatePlaceholderImage for twoCols "Change Picture"
+          support. _imgPlaceholder in exportShape. _skipExport
+          filter in export loop.
  ============================================================ */
 
 (function () {
@@ -36,6 +39,48 @@ function prefetchImage(url) {
   };
   img.onerror = function () { console.warn('[deck-shell] Failed to prefetch: ' + url); };
   img.src = url;
+}
+
+// ============================================================
+// PLACEHOLDER IMAGE GENERATOR [v6.0.5]
+// Generates a canvas-based placeholder for PPTX export.
+// Exported as addImage so user gets "Change Picture..." on
+// right-click in PowerPoint.
+// ============================================================
+
+function generatePlaceholderImage(w, h, isDark) {
+  var canvas = document.createElement('canvas');
+  var pw = Math.round(w * 150);
+  var ph = Math.round(h * 150);
+  canvas.width = pw; canvas.height = ph;
+  var ctx = canvas.getContext('2d');
+
+  // Background
+  ctx.fillStyle = isDark ? '#535B69' : '#F0F0F0';
+  ctx.fillRect(0, 0, pw, ph);
+
+  // Border
+  ctx.strokeStyle = isDark ? '#777777' : '#CCCCCC';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, pw - 2, ph - 2);
+
+  // Cross lines (subtle visual indicator)
+  ctx.strokeStyle = isDark ? '#606870' : '#E0E0E0';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, 0); ctx.lineTo(pw, ph);
+  ctx.moveTo(pw, 0); ctx.lineTo(0, ph);
+  ctx.stroke();
+
+  // Instruction text
+  ctx.fillStyle = '#999999';
+  var fontSize = Math.max(12, Math.round(pw * 0.022));
+  ctx.font = 'bold ' + fontSize + 'px Arial';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Right-click \u2192 Change Picture', pw / 2, ph / 2);
+
+  return canvas.toDataURL('image/png');
 }
 
 // ============================================================
@@ -331,7 +376,7 @@ function rerenderAll() {
 }
 
 // ============================================================
-// PPTX EXPORT [v6.0.4: 3-way master selection, content footer]
+// PPTX EXPORT [v6.0.5: _skipExport filter, _imgPlaceholder]
 // ============================================================
 
 function exportPPTX() {
@@ -392,19 +437,22 @@ try {
     if (slideData.layout && window.DeckLayouts) els = window.DeckLayouts.dispatch(slideData);
     else els = slideData.els || [];
     els = SD.enforceWidthRule(els);
-    els.forEach(function (el) { exportElement(slide, el, isDark, accent, pptx); });
+
+    // [v6.0.5] Filter _skipExport elements (preview-only)
+    els.forEach(function (el) {
+      if (el._skipExport) return;
+      exportElement(slide, el, isDark, accent, pptx);
+    });
 
     // Page number rendering — 3-way
     if (slideData.num && !slideData.customFooter) {
       if (!SD.isStructuralSlide(slideData.layout)) {
-        // Content: #767676, right-aligned, 7pt
         slide.addText(slideData.num, {
           x: 12.30, y: 7.05, w: 0.80, h: 0.30,
           fontSize: 7, fontFace: FONT, bold: false, color: '767676',
           align: 'right', margin: [0, 0, 0, 0]
         });
       } else {
-        // Structural: muted, with divider
         slide.addShape(pptx.shapes.RECTANGLE, { x: 12.15, y: 7.05, w: 0.01, h: 0.25, fill: { color: '999999' } });
         slide.addText(slideData.num, {
           x: 12.30, y: 7.05, w: 0.80, h: 0.30,
@@ -470,6 +518,13 @@ function exportText(slide, el, isDark) {
 }
 
 function exportShape(slide, el, isDark, accent, pptx) {
+  // [v6.0.5] Image placeholder: export as addImage for "Change Picture..." support
+  if (el._imgPlaceholder) {
+    var phData = generatePlaceholderImage(el.w, el.h, isDark);
+    slide.addImage({ data: phData, x: el.x, y: el.y, w: el.w, h: el.h });
+    return;
+  }
+
   var opts = { x: el.x, y: el.y, w: el.w, h: el.h, fill: { color: SD.colorForPptx(el.fill || 'cardBg', isDark) } };
   if (el.border) opts.line = { color: SD.colorForPptx(el.border, isDark), width: 1 };
   if (el.transparency) opts.fill.transparency = el.transparency;
@@ -546,10 +601,8 @@ function deckInit(config) {
 
   if (config.footer) SD.setFooter(config.footer);
 
-  // v6.0.4: Content footer configuration
   if (config.contentFooter === false || config.contentFooter === 'none') SD.setContentFooter(null);
   else if (config.contentFooter) SD.setContentFooter(config.contentFooter);
-  // Default: 'Company Confidential' (set in standard-deck.js)
 
   window._deckTitle = config.title || 'Presentation';
 
