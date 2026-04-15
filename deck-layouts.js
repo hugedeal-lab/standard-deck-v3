@@ -368,6 +368,7 @@ function layoutSection(cfg) {
   cfg.customFooter = true;
   cfg.dark = 1;
   cfg.bgGradient = SECTION_BG;
+  cfg.bgColor = SECTION_BG;
 
   var tc = 'white';
 

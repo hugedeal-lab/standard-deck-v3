@@ -1,5 +1,5 @@
 /* ============================================================
- deck-shell.js v6.0.5 -- UI Shell & PPTX Export
+ deck-shell.js v6.0.6 -- UI Shell & PPTX Export
  v6.0.1:  charSpacing, card shadows, chart polish
  v6.0.2:  customFooter, no-footer masters, image prefetch,
           bgImage, exportImage src
@@ -9,6 +9,9 @@
  v6.0.5:  generatePlaceholderImage for twoCols "Change Picture"
           support. _imgPlaceholder in exportShape. _skipExport
           filter in export loop.
+ v6.0.6:  Moved bgImage/bgColor overrides AFTER dispatch() so
+          layout-mutated properties are available. Fixes section
+          PPTX bg (#535B69) and coverPresenter bg image export.
  ============================================================ */
 
 (function () {
@@ -43,9 +46,6 @@ function prefetchImage(url) {
 
 // ============================================================
 // PLACEHOLDER IMAGE GENERATOR [v6.0.5]
-// Generates a canvas-based placeholder for PPTX export.
-// Exported as addImage so user gets "Change Picture..." on
-// right-click in PowerPoint.
 // ============================================================
 
 function generatePlaceholderImage(w, h, isDark) {
@@ -55,16 +55,13 @@ function generatePlaceholderImage(w, h, isDark) {
   canvas.width = pw; canvas.height = ph;
   var ctx = canvas.getContext('2d');
 
-  // Background
   ctx.fillStyle = isDark ? '#535B69' : '#F0F0F0';
   ctx.fillRect(0, 0, pw, ph);
 
-  // Border
   ctx.strokeStyle = isDark ? '#777777' : '#CCCCCC';
   ctx.lineWidth = 2;
   ctx.strokeRect(1, 1, pw - 2, ph - 2);
 
-  // Cross lines (subtle visual indicator)
   ctx.strokeStyle = isDark ? '#606870' : '#E0E0E0';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -72,7 +69,6 @@ function generatePlaceholderImage(w, h, isDark) {
   ctx.moveTo(pw, 0); ctx.lineTo(0, ph);
   ctx.stroke();
 
-  // Instruction text
   ctx.fillStyle = '#999999';
   var fontSize = Math.max(12, Math.round(pw * 0.022));
   ctx.font = 'bold ' + fontSize + 'px Arial';
@@ -376,7 +372,7 @@ function rerenderAll() {
 }
 
 // ============================================================
-// PPTX EXPORT [v6.0.5: _skipExport filter, _imgPlaceholder]
+// PPTX EXPORT [v6.0.6: bg overrides moved after dispatch]
 // ============================================================
 
 function exportPPTX() {
@@ -415,7 +411,16 @@ try {
   _D.forEach(function (slideData, index) {
     var isDark = !!slideData.dark;
 
-    // 3-way master selection
+    // ---- STEP 1: Dispatch layout (mutates slideData with engine flags) ----
+    var els;
+    if (slideData.layout && window.DeckLayouts) els = window.DeckLayouts.dispatch(slideData);
+    else els = slideData.els || [];
+    els = SD.enforceWidthRule(els);
+
+    // Re-read isDark after dispatch (section sets cfg.dark = 1)
+    isDark = !!slideData.dark;
+
+    // ---- STEP 2: Master selection (after dispatch, so customFooter/dark are set) ----
     var master;
     if (slideData.customFooter) {
       master = isDark ? 'SD_DARK_NOFOOTER' : 'SD_LIGHT_NOFOOTER';
@@ -429,22 +434,21 @@ try {
 
     var slide = pptx.addSlide({ masterName: master });
 
+    // ---- STEP 3: Background overrides (after dispatch set bgImage/bgColor) ----
     if (slideData.bgImage && _imageCache[slideData.bgImage]) {
       slide.background = { data: _imageCache[slideData.bgImage] };
     }
+    if (slideData.bgColor) {
+      slide.background = { color: slideData.bgColor.replace('#', '') };
+    }
 
-    var els;
-    if (slideData.layout && window.DeckLayouts) els = window.DeckLayouts.dispatch(slideData);
-    else els = slideData.els || [];
-    els = SD.enforceWidthRule(els);
-
-    // [v6.0.5] Filter _skipExport elements (preview-only)
+    // ---- STEP 4: Export elements (skip _skipExport) ----
     els.forEach(function (el) {
       if (el._skipExport) return;
       exportElement(slide, el, isDark, accent, pptx);
     });
 
-    // Page number rendering — 3-way
+    // ---- STEP 5: Page number (3-way) ----
     if (slideData.num && !slideData.customFooter) {
       if (!SD.isStructuralSlide(slideData.layout)) {
         slide.addText(slideData.num, {
@@ -462,6 +466,7 @@ try {
       }
     }
 
+    // ---- STEP 6: Notes + Logo ----
     if (slideData.notes) slide.addNotes(slideData.notes);
 
     if (_customLogo && !_noLogo) {
@@ -585,7 +590,7 @@ function exportImage(slide, el) {
 }
 
 // ============================================================
-// deckInit [v6.0.4: contentFooter config]
+// deckInit
 // ============================================================
 
 function deckInit(config) {
