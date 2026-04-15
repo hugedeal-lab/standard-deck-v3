@@ -340,35 +340,35 @@ function layoutSection(cfg) {
 // ============================================================
 
 function layoutProse(cfg) {
-  var header = renderHeader(cfg);
-  var els = header.els;
-  var startY = header.contentY;
-  var isDark = cfg.dark === 1;
+var header = renderHeader(cfg);
+var els = header.els;
+var startY = header.contentY;
+var isDark = cfg.dark === 1;
 
-  var blockW = cfg.width || C.GRID.col2.cols[0].w;
-  var textX = C.SAFE_X_MIN;
-  var currentY = startY;
+var blockW = cfg.width || C.GRID.col2.cols[0].w;
+var textX = C.SAFE_X_MIN;
+var currentY = startY;
 
-  var subColor = isDark ? 'accentLt' : 'title';
-  var bodyColor = isDark ? 'white' : 'title';
+var subColor = isDark ? 'accentLt' : 'title';
+var bodyColor = isDark ? 'white' : 'title';
 
-  if (cfg.subtitle) {
-    els.push({
-      type: 't', text: cfg.subtitle, x: textX, y: currentY,
-      w: blockW, h: 0.35, font: 'H', size: 18, color: subColor
-    });
-    currentY += 0.45;
-  }
+if (cfg.subtitle) {
+  els.push({
+    type: 't', text: cfg.subtitle, x: textX, y: currentY,
+    w: blockW, h: 0.70, font: 'H', size: 18, color: subColor
+  });
+  currentY += 0.80;
+}
 
-  if (cfg.text) {
-    els.push({
-      type: 't', text: cfg.text, x: textX, y: currentY,
-      w: blockW, h: C.CONTENT_END - currentY,
-      font: 'B', size: 15, color: bodyColor, valign: 'top'
-    });
-  }
+if (cfg.text) {
+  els.push({
+    type: 't', text: cfg.text, x: textX, y: currentY,
+    w: blockW, h: C.CONTENT_END - currentY,
+    font: 'B', size: 15, color: bodyColor, valign: 'top'
+  });
+}
 
-  return els;
+return els;
 }
 
 // ============================================================
