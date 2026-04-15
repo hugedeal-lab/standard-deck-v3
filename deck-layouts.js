@@ -1,12 +1,8 @@
 /* ============================================================
- deck-layouts.js v6.0.10 -- Layout Shortcut Library
- v6.0.5:  section layout — asymmetric dark divider
- v6.0.7:  prose — evaluator-precise narrative layout
- v6.0.8:  twoCols — 2-column image + text spotlights
+ deck-layouts.js v6.0.11 -- Layout Shortcut Library
  v6.0.9:  Fixed duplicate IIFE. coverPresenter v5 dynamic title.
- v6.0.10: twoCols image placeholders export as addImage for
-          native "Change Picture..." right-click support in PPTX.
-          Preview instruction text marked _skipExport.
+ v6.0.10: twoCols _imgPlaceholder + _skipExport for Change Picture.
+ v6.0.11: Accent rename warmBrown → bronze. No functional changes.
  ============================================================ */
 
 (function () {
@@ -290,7 +286,7 @@ registerPrefetch(CP_LOGO_URL);
 registerPrefetch(CP_BG_URL);
 
 // ============================================================
-// CLIENT: COVER-PRESENTER v5 — dynamic title height [v6.0.9]
+// CLIENT: COVER-PRESENTER v5
 // ============================================================
 
 function layoutCoverPresenter(cfg) {
@@ -424,9 +420,7 @@ function layoutProse(cfg) {
 }
 
 // ============================================================
-// CLIENT: TWOCOLS — 2-column image + text spotlights [v6.0.10]
-// Image placeholders export as addImage via _imgPlaceholder flag.
-// PPTX users: right-click image → "Change Picture..." to replace.
+// CLIENT: TWOCOLS — 2-column image + text spotlights
 // ============================================================
 
 function layoutTwoCols(cfg) {
@@ -444,13 +438,11 @@ function layoutTwoCols(cfg) {
     var cw = grid.cols[i].w;
     var imgH = cw * (9 / 16);
 
-    // Image placeholder — exported as addImage for "Change Picture..." [v6.0.10]
     els.push({ type:'s', x:cx, y:startY, w:cw, h:imgH,
       fill: isDark ? 'cardBg' : 'white',
       border: isDark ? null : 'cardBorder',
       _imgPlaceholder: true });
 
-    // Instruction text — preview only, baked into placeholder image for PPTX
     els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
       x: cx + 0.20, y: startY + (imgH / 2) - 0.15,
       w: cw - 0.40, h: 0.30,
@@ -458,7 +450,6 @@ function layoutTwoCols(cfg) {
       align:'center', valign:'middle',
       _skipExport: true });
 
-    // Subtitle (L3 uppercase via engine)
     var textY = startY + imgH + 0.20;
     if (item.subtitle) {
       els.push({ type:'t', text:item.subtitle, x:cx, y:textY, w:cw, h:0.25,
@@ -466,7 +457,6 @@ function layoutTwoCols(cfg) {
       textY += 0.30;
     }
 
-    // Body copy (flush left with image)
     if (item.text) {
       els.push({ type:'t', text:item.text, x:cx, y:textY, w:cw,
         h:C.CONTENT_END - textY, font:'B', size:11, color:'body' });

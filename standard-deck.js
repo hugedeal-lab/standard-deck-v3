@@ -1,13 +1,10 @@
 /* ============================================================
- standard-deck.js v6.0.4 -- Core Rendering Engine
- Standard Presentation Builder
- v6.0.1:  customFooter, bgGradient, renderImage src
- v6.0.2:  contenteditable on text elements
- v6.0.3:  MNAO palette, H weight 500 (Medium), Arial fallback,
-          footer 7pt, warmBrown default accent
- v6.0.4:  Content footer system — 3-way footer logic:
-          structural (date/muted), content (configurable/#767676),
-          custom (layout-managed). setContentFooter API.
+ standard-deck.js v6.0.5 -- Core Rendering Engine
+ v6.0.3:  MNAO palette, H weight 500, Arial fallback
+ v6.0.4:  Content footer system, 3-way footer logic
+ v6.0.5:  Removed bgMode (white light / dark dark always).
+          Renamed warmBrown → bronze. Added 5 accent families:
+          copper, indigo, slate, wine, sage. 13 total.
  ============================================================ */
 
 (function () {
@@ -53,21 +50,30 @@ var SAFE = { x: SD_CONST.SAFE_X_MIN, y: SD_CONST.SAFE_Y_MIN, x2: SD_CONST.SAFE_X
 
 var PALETTE = {
   black: '#040B13', deepBlack: '#040B13',
-  white: '#FFFFFF', cream: '#F5F1EB',
+  white: '#FFFFFF',
   dkGray: '#535B69', mdGray: '#333333',
   gray: '#999999', ltGray: '#CCCCCC',
   ok: '#28A745', warn: '#E67E00', bad: '#C12638'
 };
 
+// ============================================================
+// 13 ACCENT FAMILIES [v6.0.5]
+// ============================================================
+
 var ACCENT_FAMILIES = {
-  warmBrown:{ light: '#CAA380', mid: '#8D7057', dark: '#040B13' },
+  bronze:   { light: '#CAA380', mid: '#8D7057', dark: '#040B13' },
   red:      { light: '#E5D0C9', mid: '#8E1C2E', dark: '#5C1220' },
   navy:     { light: '#C4C6D0', mid: '#002544', dark: '#001830' },
   green:    { light: '#CACEC7', mid: '#00412E', dark: '#002B1E' },
   plum:     { light: '#D4C8D1', mid: '#4B1848', dark: '#2F0F2E' },
   gold:     { light: '#F9D28C', mid: '#C4962C', dark: '#8B6A00' },
   teal:     { light: '#9ECFCF', mid: '#1A7A7A', dark: '#0F4E4E' },
-  charcoal: { light: '#CCCCCC', mid: '#535B69', dark: '#040B13' }
+  charcoal: { light: '#CCCCCC', mid: '#535B69', dark: '#040B13' },
+  copper:   { light: '#D4A574', mid: '#8B4513', dark: '#5C2D0A' },
+  indigo:   { light: '#B8C4E0', mid: '#354D8C', dark: '#1A2650' },
+  slate:    { light: '#B8C4CE', mid: '#4A6274', dark: '#263340' },
+  wine:     { light: '#D4B0BE', mid: '#722F4B', dark: '#401A2B' },
+  sage:     { light: '#C2CCBC', mid: '#4E6648', dark: '#2E3D2B' }
 };
 
 var CHART_SERIES = ['#8D7057', '#040B13', '#535B69', '#CAA380', '#333333'];
@@ -76,8 +82,7 @@ var CHART_SERIES_LIGHT = ['#CAA380', '#999999', '#8D7057', '#CCCCCC', '#666666']
 var _accentLight = '#CAA380';
 var _accentMid   = '#8D7057';
 var _accentDark  = '#040B13';
-var _familyName  = 'warmBrown';
-var _bgMode = 'standard';
+var _familyName  = 'bronze';
 
 var FONT_MAP = {
   H: { face: 'Mazda Type, Arial, sans-serif', weight: 500 },
@@ -134,7 +139,7 @@ function getFooterDate() {
 }
 
 // ============================================================
-// COLOR RESOLUTION
+// COLOR RESOLUTION [v6.0.5: no bgMode, always white/black]
 // ============================================================
 
 function resolveColor(token, isDark) {
@@ -148,11 +153,9 @@ function resolveColor(token, isDark) {
     accent: _accentMid, accentLt: _accentLight, accentDk: _accentDark,
     cardBg: isDark ? PALETTE.dkGray : '#FFFFFF',
     cardBorder: isDark ? 'transparent' : PALETTE.ltGray,
-    slideBg: isDark
-      ? (_bgMode === 'deep' ? PALETTE.deepBlack : PALETTE.black)
-      : (_bgMode === 'brand' ? PALETTE.cream : PALETTE.white),
+    slideBg: isDark ? PALETTE.black : PALETTE.white,
     white: '#FFFFFF', black: '#000000',
-    cream: PALETTE.cream, deepBlack: PALETTE.deepBlack
+    deepBlack: PALETTE.deepBlack
   };
   if (semantics[token]) return semantics[token];
   if (PALETTE[token]) return PALETTE[token];
@@ -164,20 +167,12 @@ function colorForPptx(token, isDark) {
 }
 
 // ============================================================
-// BACKGROUND MODE
+// BACKGROUND MODE — removed [v6.0.5], no-ops for compat
 // ============================================================
 
-function setBgMode(mode) {
-  if (['standard', 'brand', 'deep'].indexOf(mode) > -1) _bgMode = mode;
-}
-function getBgMode() { return _bgMode; }
-
-function detectBgMode(title) {
-  var t = (title || '').toLowerCase();
-  if (/brand|messaging|positioning|portfolio|move and be moved|campaign|creative/.test(t)) return 'brand';
-  if (/ai|technical|strategy|digital|platform|cdp|summit|engineering/.test(t)) return 'deep';
-  return 'standard';
-}
+function setBgMode() {}
+function getBgMode() { return 'standard'; }
+function detectBgMode() { return 'standard'; }
 
 // ============================================================
 // COORDINATE CONVERSION
@@ -383,15 +378,12 @@ function renderChart(el, isDark) {
   container.style.left = toX(el.x) + 'px'; container.style.top = toY(el.y) + 'px';
   container.style.width = toX(el.w) + 'px'; container.style.height = toY(el.h) + 'px';
   var cw = toX(el.w); var ch = toY(el.h);
-  var canvas = document.createElement('canvas');
-  canvas.width = cw; canvas.height = ch;
-  container.appendChild(canvas);
+  var canvas = document.createElement('canvas'); canvas.width = cw; canvas.height = ch; container.appendChild(canvas);
   var ctx = canvas.getContext('2d');
   var data = el.data || []; var opts = el.opts || {};
   if (opts.showTitle && opts.title) {
     ctx.font = '500 ' + ptToPx(12) + 'px Mazda Type, Arial, sans-serif';
-    ctx.fillStyle = resolveColor('title', isDark);
-    ctx.fillText(opts.title, 20, ptToPx(14) + 10);
+    ctx.fillStyle = resolveColor('title', isDark); ctx.fillText(opts.title, 20, ptToPx(14) + 10);
   }
   var chartType = el.chartType || 'bar';
   if (chartType === 'bar') renderBarChart(ctx, data, opts, cw, ch, isDark);
@@ -465,8 +457,7 @@ function renderPieChart(ctx, data, opts, cw, ch, isDark, isDoughnut) {
   var values = data[0].values; var labels = data[0].labels || [];
   var total = values.reduce(function (a, b) { return a + b; }, 0);
   if (total === 0) return;
-  var cx = cw / 2; var cy = ch / 2;
-  var radius = Math.min(cw, ch) * 0.35;
+  var cx = cw / 2; var cy = ch / 2; var radius = Math.min(cw, ch) * 0.35;
   var hole = isDoughnut ? radius * ((opts.holeSize || 70) / 100) : 0;
   var colors = resolveChartColors(opts.chartColors || null, values.length, isDark);
   var startAngle = -Math.PI / 2;
@@ -570,7 +561,7 @@ function renderImage(el) {
 }
 
 // ============================================================
-// STRUCTURAL SLIDE DETECTION [v6.0.4]
+// STRUCTURAL SLIDE DETECTION
 // ============================================================
 
 var STRUCTURAL_LAYOUTS = ['cover', 'closing', 'divider', 'coverloc'];
@@ -580,7 +571,7 @@ function isStructuralSlide(layout) {
 }
 
 // ============================================================
-// SLIDE RENDERING [v6.0.4: 3-way footer logic]
+// SLIDE RENDERING
 // ============================================================
 
 function renderSlide(slideData, index) {
@@ -607,12 +598,10 @@ function renderSlide(slideData, index) {
     slide.appendChild(renderElement(el, isDark));
   });
 
-  // ---- FOOTER: 3-way logic [v6.0.4] ----
+  // FOOTER: 3-way logic
   if (slideData.customFooter) {
-    // Mode 1: Layout handles its own footer (coverPresenter, section)
-    // Do nothing — layout already rendered footer elements
+    // Layout handles its own footer
   } else if (isStructuralSlide(slideData.layout)) {
-    // Mode 2: Structural slides — date in muted, no page number
     var mutedColor = resolveColor('muted', isDark);
     var dateDiv = document.createElement('div');
     dateDiv.style.cssText = 'position:absolute;bottom:24px;left:40px;'
@@ -625,7 +614,6 @@ function renderSlide(slideData, index) {
     dateDiv.textContent = _footerText || getFooterDate();
     slide.appendChild(dateDiv);
   } else if (_contentFooter) {
-    // Mode 3: Content slides — configurable text + page number in #767676
     var cfColor = '#767676';
     var cfDiv = document.createElement('div');
     cfDiv.style.cssText = 'position:absolute;bottom:24px;left:40px;'
@@ -649,7 +637,6 @@ function renderSlide(slideData, index) {
       slide.appendChild(numDiv);
     }
   }
-  // ---- END FOOTER ----
 
   return slide;
 }
@@ -686,7 +673,7 @@ function adjustBrightness(hex, amount) {
 }
 
 // ============================================================
-// FOOTER CONFIGURATION [v6.0.4]
+// FOOTER CONFIGURATION
 // ============================================================
 
 var _footerText = null;

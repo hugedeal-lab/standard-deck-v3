@@ -1,17 +1,9 @@
 /* ============================================================
- deck-shell.js v6.0.6 -- UI Shell & PPTX Export
- v6.0.1:  charSpacing, card shadows, chart polish
- v6.0.2:  customFooter, no-footer masters, image prefetch,
-          bgImage, exportImage src
- v6.0.3:  Unicode escapes for innerHTML, contenteditable CSS
- v6.0.4:  Content footer PPTX masters, 3-way master selection,
-          contentFooter config in deckInit
- v6.0.5:  generatePlaceholderImage for twoCols "Change Picture"
-          support. _imgPlaceholder in exportShape. _skipExport
-          filter in export loop.
- v6.0.6:  Moved bgImage/bgColor overrides AFTER dispatch() so
-          layout-mutated properties are available. Fixes section
-          PPTX bg (#535B69) and coverPresenter bg image export.
+ deck-shell.js v6.0.7 -- UI Shell & PPTX Export
+ v6.0.5:  _imgPlaceholder, _skipExport, generatePlaceholderImage
+ v6.0.6:  Reordered export: dispatch before master/bg overrides
+ v6.0.7:  Removed bgMode buttons from color picker. Hardcoded
+          white light bg. Renamed warmBrown → bronze in reset.
  ============================================================ */
 
 (function () {
@@ -45,37 +37,27 @@ function prefetchImage(url) {
 }
 
 // ============================================================
-// PLACEHOLDER IMAGE GENERATOR [v6.0.5]
+// PLACEHOLDER IMAGE GENERATOR
 // ============================================================
 
 function generatePlaceholderImage(w, h, isDark) {
   var canvas = document.createElement('canvas');
-  var pw = Math.round(w * 150);
-  var ph = Math.round(h * 150);
+  var pw = Math.round(w * 150); var ph = Math.round(h * 150);
   canvas.width = pw; canvas.height = ph;
   var ctx = canvas.getContext('2d');
-
   ctx.fillStyle = isDark ? '#535B69' : '#F0F0F0';
   ctx.fillRect(0, 0, pw, ph);
-
   ctx.strokeStyle = isDark ? '#777777' : '#CCCCCC';
-  ctx.lineWidth = 2;
-  ctx.strokeRect(1, 1, pw - 2, ph - 2);
-
+  ctx.lineWidth = 2; ctx.strokeRect(1, 1, pw - 2, ph - 2);
   ctx.strokeStyle = isDark ? '#606870' : '#E0E0E0';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
+  ctx.lineWidth = 1; ctx.beginPath();
   ctx.moveTo(0, 0); ctx.lineTo(pw, ph);
-  ctx.moveTo(pw, 0); ctx.lineTo(0, ph);
-  ctx.stroke();
-
+  ctx.moveTo(pw, 0); ctx.lineTo(0, ph); ctx.stroke();
   ctx.fillStyle = '#999999';
   var fontSize = Math.max(12, Math.round(pw * 0.022));
   ctx.font = 'bold ' + fontSize + 'px Arial';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.fillText('Right-click \u2192 Change Picture', pw / 2, ph / 2);
-
   return canvas.toDataURL('image/png');
 }
 
@@ -105,9 +87,6 @@ var css = [
   '.sd-swatch { width:30px; height:30px; border-radius:6px; cursor:pointer; border:3px solid transparent; transition:border-color 0.2s, transform 0.15s; }',
   '.sd-swatch:hover { transform:scale(1.1); }',
   '.sd-swatch.active { border-color:#FFFFFF; }',
-  '.sd-bg-btn { padding:5px 10px; border-radius:4px; cursor:pointer; border:2px solid transparent; font-size:11px; font-family:DM Sans,sans-serif; transition:border-color 0.2s; }',
-  '.sd-bg-btn.active { border-color:#FFFFFF; }',
-  '.sd-bg-btn:hover { border-color:#8B8C81; }',
   '.sd-picker-divider { height:1px; background:#363732; }',
   '.sd-hex-row { display:flex; align-items:center; gap:6px; }',
   '.sd-hex-row input { background:#2a2a2a; border:1px solid #444; color:#eee; padding:6px 8px; border-radius:4px; font-size:12px; width:90px; }',
@@ -196,11 +175,13 @@ function buildToolbar(container) {
 }
 
 // ============================================================
-// COLOR PICKER
+// COLOR PICKER [v6.0.7: accent swatches only, no bg buttons]
 // ============================================================
 
 function buildColorPicker(toolbarRight) {
   var picker = document.createElement('div'); picker.className = 'sd-color-picker';
+
+  // Accent swatches
   var al = document.createElement('div'); al.className = 'sd-picker-label'; al.textContent = 'Accent Color'; picker.appendChild(al);
   var ar = document.createElement('div'); ar.className = 'sd-swatch-row';
   var families = SD.ACCENT_FAMILIES; var ca = SD.getAccent().mid;
@@ -211,36 +192,31 @@ function buildColorPicker(toolbarRight) {
     sw.addEventListener('click', function () { SD.setAccent(name); rerenderAll(); updateSwatchStates(); picker.style.display = 'none'; });
     ar.appendChild(sw);
   }); picker.appendChild(ar);
+
+  // Divider
   picker.appendChild(Object.assign(document.createElement('div'), { className: 'sd-picker-divider' }));
-  var bl = document.createElement('div'); bl.className = 'sd-picker-label'; bl.textContent = 'Background'; picker.appendChild(bl);
-  var br = document.createElement('div'); br.className = 'sd-swatch-row';
-  [{ name:'standard', label:'Standard', l:'#FFFFFF', d:'#040B13' }, { name:'brand', label:'Brand', l:'#F5F1EB', d:'#040B13' }, { name:'deep', label:'Deep', l:'#FFFFFF', d:'#040B13' }].forEach(function (m) {
-    var btn = document.createElement('button');
-    btn.className = 'sd-bg-btn' + (m.name === SD.getBgMode() ? ' active' : '');
-    btn.setAttribute('data-bgmode', m.name); btn.style.background = 'linear-gradient(135deg,' + m.l + ' 50%,' + m.d + ' 50%)';
-    btn.style.color = '#F5F5F5'; btn.title = m.label; btn.textContent = m.label;
-    btn.addEventListener('click', function () { SD.setBgMode(m.name); rerenderAll(); updateSwatchStates(); picker.style.display = 'none'; });
-    br.appendChild(btn);
-  }); picker.appendChild(br);
-  picker.appendChild(Object.assign(document.createElement('div'), { className: 'sd-picker-divider' }));
+
+  // Custom hex
   var hr = document.createElement('div'); hr.className = 'sd-hex-row';
   hr.innerHTML = '<span style="color:#8B8C81;font-size:10px;margin-right:4px;">Custom:</span><input type="text" class="sd-hex-input" placeholder="#8D7057" maxlength="7"><button class="sd-hex-apply">Apply</button><button class="sd-hex-reset">Reset</button>';
-  picker.appendChild(hr); toolbarRight.style.position = 'relative'; toolbarRight.appendChild(picker);
+  picker.appendChild(hr);
+  toolbarRight.style.position = 'relative'; toolbarRight.appendChild(picker);
+
   hr.querySelector('.sd-hex-apply').addEventListener('click', function () {
     var hex = hr.querySelector('.sd-hex-input').value.trim();
     if (/^#[0-9A-Fa-f]{6}$/.test(hex)) { SD.setAccent(hex); rerenderAll(); updateSwatchStates(); picker.style.display = 'none'; }
   });
   hr.querySelector('.sd-hex-reset').addEventListener('click', function () {
-    SD.setAccent('warmBrown'); SD.setBgMode('standard'); rerenderAll(); updateSwatchStates();
+    SD.setAccent('bronze'); rerenderAll(); updateSwatchStates();
     hr.querySelector('.sd-hex-input').value = ''; picker.style.display = 'none';
   });
+
   return picker;
 }
 
 function updateSwatchStates() {
   var cur = SD.getAccent().name;
   document.querySelectorAll('.sd-swatch').forEach(function (s) { s.classList.toggle('active', s.getAttribute('data-family') === cur); });
-  document.querySelectorAll('.sd-bg-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-bgmode') === SD.getBgMode()); });
   var tb = document.querySelector('.sd-toolbar'); if (tb) tb.style.borderBottomColor = SD.getAccent().mid;
 }
 
@@ -372,7 +348,7 @@ function rerenderAll() {
 }
 
 // ============================================================
-// PPTX EXPORT [v6.0.6: bg overrides moved after dispatch]
+// PPTX EXPORT [v6.0.7: hardcoded white light bg]
 // ============================================================
 
 function exportPPTX() {
@@ -386,21 +362,19 @@ try {
   var pptx = new PptxGenJS();
   pptx.defineLayout({ name: 'SD_LAYOUT', width: 13.33, height: 7.5 }); pptx.layout = 'SD_LAYOUT';
   pptx.author = 'Standard Presentation Builder'; pptx.subject = _config.title || 'Presentation';
-  var accent = SD.getAccent(); var footerText = SD.getFooterText(); var bgMode = SD.getBgMode();
-  var darkBgColor = '040B13'; var lightBgColor = bgMode === 'brand' ? 'F5F1EB' : 'FFFFFF';
+  var accent = SD.getAccent(); var footerText = SD.getFooterText();
+  var darkBgColor = '040B13';
+  var lightBgColor = 'FFFFFF';
   var contentFooterText = SD.getContentFooter();
 
-  // Structural masters (date footer)
   pptx.defineSlideMaster({ title: 'SD_DARK', background: { color: darkBgColor },
     objects: [{ text: { text: footerText, options: { x: 0.3, y: 7.05, w: 4, h: 0.3, fontSize: 7, fontFace: FONT, color: '999999', bold: false, letterSpacing: 1.5 } } }] });
   pptx.defineSlideMaster({ title: 'SD_LIGHT', background: { color: lightBgColor },
     objects: [{ text: { text: footerText, options: { x: 0.3, y: 7.05, w: 4, h: 0.3, fontSize: 7, fontFace: FONT, color: '999999', bold: false, letterSpacing: 1.5 } } }] });
 
-  // No-footer masters (custom footer layouts)
   pptx.defineSlideMaster({ title: 'SD_DARK_NOFOOTER', background: { color: darkBgColor } });
   pptx.defineSlideMaster({ title: 'SD_LIGHT_NOFOOTER', background: { color: lightBgColor } });
 
-  // Content masters (configurable footer text + #767676)
   if (contentFooterText) {
     pptx.defineSlideMaster({ title: 'SD_DARK_CONTENT', background: { color: darkBgColor },
       objects: [{ text: { text: contentFooterText, options: { x: 0.3, y: 7.05, w: 4, h: 0.3, fontSize: 7, fontFace: FONT, color: '767676', bold: false, letterSpacing: 1.5 } } }] });
@@ -411,16 +385,15 @@ try {
   _D.forEach(function (slideData, index) {
     var isDark = !!slideData.dark;
 
-    // ---- STEP 1: Dispatch layout (mutates slideData with engine flags) ----
+    // STEP 1: Dispatch (mutates slideData)
     var els;
     if (slideData.layout && window.DeckLayouts) els = window.DeckLayouts.dispatch(slideData);
     else els = slideData.els || [];
     els = SD.enforceWidthRule(els);
 
-    // Re-read isDark after dispatch (section sets cfg.dark = 1)
     isDark = !!slideData.dark;
 
-    // ---- STEP 2: Master selection (after dispatch, so customFooter/dark are set) ----
+    // STEP 2: Master selection (after dispatch)
     var master;
     if (slideData.customFooter) {
       master = isDark ? 'SD_DARK_NOFOOTER' : 'SD_LIGHT_NOFOOTER';
@@ -434,7 +407,7 @@ try {
 
     var slide = pptx.addSlide({ masterName: master });
 
-    // ---- STEP 3: Background overrides (after dispatch set bgImage/bgColor) ----
+    // STEP 3: Background overrides (after dispatch)
     if (slideData.bgImage && _imageCache[slideData.bgImage]) {
       slide.background = { data: _imageCache[slideData.bgImage] };
     }
@@ -442,13 +415,13 @@ try {
       slide.background = { color: slideData.bgColor.replace('#', '') };
     }
 
-    // ---- STEP 4: Export elements (skip _skipExport) ----
+    // STEP 4: Export elements
     els.forEach(function (el) {
       if (el._skipExport) return;
       exportElement(slide, el, isDark, accent, pptx);
     });
 
-    // ---- STEP 5: Page number (3-way) ----
+    // STEP 5: Page number (3-way)
     if (slideData.num && !slideData.customFooter) {
       if (!SD.isStructuralSlide(slideData.layout)) {
         slide.addText(slideData.num, {
@@ -466,7 +439,7 @@ try {
       }
     }
 
-    // ---- STEP 6: Notes + Logo ----
+    // STEP 6: Notes + Logo
     if (slideData.notes) slide.addNotes(slideData.notes);
 
     if (_customLogo && !_noLogo) {
@@ -523,13 +496,11 @@ function exportText(slide, el, isDark) {
 }
 
 function exportShape(slide, el, isDark, accent, pptx) {
-  // [v6.0.5] Image placeholder: export as addImage for "Change Picture..." support
   if (el._imgPlaceholder) {
     var phData = generatePlaceholderImage(el.w, el.h, isDark);
     slide.addImage({ data: phData, x: el.x, y: el.y, w: el.w, h: el.h });
     return;
   }
-
   var opts = { x: el.x, y: el.y, w: el.w, h: el.h, fill: { color: SD.colorForPptx(el.fill || 'cardBg', isDark) } };
   if (el.border) opts.line = { color: SD.colorForPptx(el.border, isDark), width: 1 };
   if (el.transparency) opts.fill.transparency = el.transparency;
@@ -600,9 +571,6 @@ function deckInit(config) {
 
   if (config.accent) SD.setAccent(config.accent);
   else if (window.AH) SD.setAccent(window.AH, window.AL, window.AD);
-
-  if (config.bgMode) SD.setBgMode(config.bgMode);
-  else SD.setBgMode(SD.detectBgMode(config.title));
 
   if (config.footer) SD.setFooter(config.footer);
 
