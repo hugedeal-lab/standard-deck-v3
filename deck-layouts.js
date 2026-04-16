@@ -548,6 +548,50 @@ function layoutGallery(cfg) {
 }
 
 // ============================================================
+// CLIENT: HEROSIDE — 1:2 asymmetric text + hero image [v6.0.12]
+// Left: subtitle + body (4.06"). Right: large image (8.11").
+// ============================================================
+
+function layoutHeroSide(cfg) {
+ var header = renderHeader(cfg);
+ var els = header.els;
+ var startY = header.contentY;
+ var isDark = cfg.dark === 1;
+
+ // 1:2 Asymmetric grid (§6.5)
+ var leftW = 4.06;
+ var rightX = 4.81;
+ var rightW = 8.11;
+
+ // Left: text content
+ var textY = startY;
+ if (cfg.subtitle) {
+   els.push({ type:'t', text:cfg.subtitle, x:C.SAFE_X_MIN, y:textY,
+     w:leftW, h:0.35, font:'H', size:18, color: isDark ? 'accentLt' : 'sub' });
+   textY += 0.45;
+ }
+ if (cfg.text) {
+   els.push({ type:'t', text:cfg.text, x:C.SAFE_X_MIN, y:textY,
+     w:leftW, h:C.CONTENT_END - textY, font:'B', size:13, color:'body' });
+ }
+
+ // Right: hero image placeholder
+ var imgH = C.CONTENT_END - startY;
+ var phFill = isDark ? 'cardBg' : 'white';
+ var phBorder = isDark ? null : 'cardBorder';
+
+ els.push({ type:'s', x:rightX, y:startY, w:rightW, h:imgH,
+   fill:phFill, border:phBorder, _imgPlaceholder:true });
+ els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+   x:rightX + 0.50, y:startY + (imgH/2) - 0.15,
+   w:rightW - 1.00, h:0.30,
+   font:'H', size:9, color: isDark ? 'muted' : 'gray',
+   align:'center', valign:'middle', _skipExport:true });
+
+ return els;
+}
+
+// ============================================================
 // DISPATCHER
 // ============================================================
 
@@ -558,7 +602,7 @@ var LAYOUT_MAP = {
   detail:layoutDetail, bullets:layoutBullets, pillar:layoutPillar,
   fromto:layoutFromto, capability:layoutCapability, schedule:layoutSchedule,
   coverloc:layoutCoverloc, coverPresenter:layoutCoverPresenter,
-  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols, gallery:layoutGallery
+  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols, gallery:layoutGallery, heroSide:layoutHeroSide
 };
 
 function dispatch(slideData) {
