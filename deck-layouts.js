@@ -298,7 +298,7 @@ function layoutCoverPresenter(cfg) {
   var grid = getGrid(1);
   var cx = grid.cols[0].x;
   var cw = grid.cols[0].w;
-  var tw = cw * 0.65;
+  var tw = cw * 0.80;
   var GOLD = '#CAA380';
 
   els.push({ type:'img', src:CP_LOGO_URL, x:11.29, y:0.84, w:1.02, h:0.84 });
