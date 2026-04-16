@@ -305,13 +305,13 @@ function layoutCoverPresenter(cfg) {
 
   var tY = 1.60;
   var titleLen = (cfg.title || '').length;
-  var titleH = titleLen > 25 ? 1.20 : 0.80;
+  var titleH = titleLen > 20 ? 1.20 : 0.80;
   if (cfg.title) {
     els.push({ type:'t', text:cfg.title, x:cx, y:tY, w:tw, h:titleH,
       font:'B', size:40, color:'title', textStyle:'L2' });
   }
 
-  var sY = tY + (titleLen > 25 ? 1.40 : 1.05);
+  var sY = tY + (titleLen > 20 ? 1.40 : 1.05);
   if (cfg.subtitle) {
     els.push({ type:'t', text:cfg.subtitle, x:cx, y:sY, w:tw, h:0.45,
       font:'B', size:23, color:GOLD, textStyle:'L3' });
