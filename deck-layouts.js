@@ -592,6 +592,60 @@ function layoutHeroSide(cfg) {
 }
 
 // ============================================================
+// CLIENT: PHOTOCARDS — image/media grid with subtitle + caption
+// Columns: 2–4 (default 3). Items: [{subtitle, text}]
+// Subtitle above image, caption below. _imgPlaceholder shapes.
+// ============================================================
+
+var layoutPhotocards = function(cfg) {
+var header = renderHeader(cfg);
+var els    = header.els;
+var startY = header.contentY;
+var isDark = cfg.dark === 1;
+
+var items  = cfg.items || [];
+var cols   = cfg.columns || 3;
+var grid   = getGrid(cols);
+
+var availH      = C.CONTENT_END - startY;
+var subtitleH   = 0.28;
+var subtitleGap = 0.05;
+var bodyH       = 0.27;
+var bodyGap     = 0.08;
+var imageH      = availH - subtitleH - subtitleGap - bodyGap - bodyH;
+var imageY      = startY + subtitleH + subtitleGap;
+var bodyY       = imageY + imageH + bodyGap;
+
+var labelColor  = isDark ? 'accentLt' : 'accent';
+
+items.forEach(function (item, i) {
+  if (i >= grid.cols.length) return;
+  var cx = grid.cols[i].x;
+  var cw = grid.cols[i].w;
+
+  // Subtitle label (L3 auto-style)
+  els.push({ type:'t', text:item.subtitle || '', x:cx, y:startY,
+    w:cw, h:subtitleH, font:'H', size:11, color:labelColor });
+
+  // Image placeholder
+  els.push({ type:'s', x:cx, y:imageY, w:cw, h:imageH,
+    fill:'cardBg', border: isDark ? null : 'cardBorder',
+    _imgPlaceholder:true });
+  els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+    x:cx + 0.10, y:imageY + (imageH/2) - 0.15,
+    w:cw - 0.20, h:0.30,
+    font:'H', size:8, color: isDark ? 'muted' : 'gray',
+    align:'center', valign:'middle', _skipExport:true });
+
+  // Caption
+  els.push({ type:'t', text:item.text || '', x:cx, y:bodyY,
+    w:cw, h:bodyH, font:'B', size:13, color:'body' });
+});
+
+return els;
+};
+
+// ============================================================
 // DISPATCHER
 // ============================================================
 
@@ -602,7 +656,8 @@ var LAYOUT_MAP = {
   detail:layoutDetail, bullets:layoutBullets, pillar:layoutPillar,
   fromto:layoutFromto, capability:layoutCapability, schedule:layoutSchedule,
   coverloc:layoutCoverloc, coverPresenter:layoutCoverPresenter,
-  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols, gallery:layoutGallery, heroSide:layoutHeroSide
+  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols, gallery:layoutGallery, 
+  heroSide:layoutHeroSide, photocards:layoutPhotocards
 };
 
 function dispatch(slideData) {
