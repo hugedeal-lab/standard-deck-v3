@@ -467,6 +467,87 @@ function layoutTwoCols(cfg) {
 }
 
 // ============================================================
+// CLIENT: GALLERY — 50/50 split with 3-image grid [v6.0.12]
+// Left: title + subtitle + body. Right: cream/dkGray panel
+// with 1 top + 2 bottom image placeholders.
+// ============================================================
+
+var GALLERY_PANEL = '#F5F1EB';
+
+function layoutGallery(cfg) {
+ var header = renderHeader(cfg);
+ var els = header.els;
+ var startY = header.contentY;
+ var isDark = cfg.dark === 1;
+
+ var splitX = C.SLIDE_W / 2;
+ var leftW = splitX - C.SAFE_X_MIN - 0.50;
+
+ // Constrain header elements to left half
+ els.forEach(function(el) {
+   if (el.y < startY && el.type === 't') {
+     el.w = leftW;
+   }
+ });
+
+ // Right-side background panel (full height)
+ els.push({ type:'s', x:splitX, y:0, w:C.SLIDE_W - splitX, h:C.SLIDE_H,
+   fill: isDark ? 'dkGray' : GALLERY_PANEL, border:null, noShadow:true });
+
+ // Left content
+ var textY = startY + 0.60;
+ if (cfg.subtitle) {
+   els.push({ type:'t', text:cfg.subtitle, x:C.SAFE_X_MIN, y:textY,
+     w:leftW, h:0.40, font:'H', size:18, color:'title' });
+   textY += 0.50;
+ }
+ if (cfg.text) {
+   els.push({ type:'t', text:cfg.text, x:C.SAFE_X_MIN, y:textY,
+     w:leftW, h:C.CONTENT_END - textY, font:'B', size:13, color:'body' });
+ }
+
+ // Right content: 3-image gallery
+ var grid = getGrid(2);
+ var rx = grid.cols[1].x;
+ var rw = grid.cols[1].w;
+ var availH = C.CONTENT_END - C.SAFE_Y_MIN;
+ var topH = (availH - C.GAP) / 2;
+ var bottomY = C.SAFE_Y_MIN + topH + C.GAP;
+ var botW = (rw - C.GAP) / 2;
+ var phFill = isDark ? 'black' : 'white';
+ var phBorder = isDark ? null : 'ltGray';
+ var phColor = isDark ? 'muted' : 'gray';
+
+ // Top image (full width)
+ els.push({ type:'s', x:rx, y:C.SAFE_Y_MIN, w:rw, h:topH,
+   fill:phFill, border:phBorder, _imgPlaceholder:true });
+ els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+   x:rx+0.20, y:C.SAFE_Y_MIN+(topH/2)-0.15, w:rw-0.40, h:0.30,
+   font:'H', size:9, color:phColor, align:'center', valign:'middle',
+   _skipExport:true });
+
+ // Bottom-left image
+ els.push({ type:'s', x:rx, y:bottomY, w:botW, h:topH,
+   fill:phFill, border:phBorder, _imgPlaceholder:true });
+ els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+   x:rx+0.10, y:bottomY+(topH/2)-0.15, w:botW-0.20, h:0.30,
+   font:'H', size:8, color:phColor, align:'center', valign:'middle',
+   _skipExport:true });
+
+ // Bottom-right image
+ var brX = rx + botW + C.GAP;
+ var brW = rw - botW - C.GAP;
+ els.push({ type:'s', x:brX, y:bottomY, w:brW, h:topH,
+   fill:phFill, border:phBorder, _imgPlaceholder:true });
+ els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+   x:brX+0.10, y:bottomY+(topH/2)-0.15, w:brW-0.20, h:0.30,
+   font:'H', size:8, color:phColor, align:'center', valign:'middle',
+   _skipExport:true });
+
+ return els;
+}
+
+// ============================================================
 // DISPATCHER
 // ============================================================
 
@@ -477,7 +558,7 @@ var LAYOUT_MAP = {
   detail:layoutDetail, bullets:layoutBullets, pillar:layoutPillar,
   fromto:layoutFromto, capability:layoutCapability, schedule:layoutSchedule,
   coverloc:layoutCoverloc, coverPresenter:layoutCoverPresenter,
-  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols
+  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols, gallery:layoutGallery
 };
 
 function dispatch(slideData) {
