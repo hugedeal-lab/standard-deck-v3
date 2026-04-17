@@ -643,7 +643,97 @@ items.forEach(function (item, i) {
 });
 
 return els;
-}; 
+}
+
+// ============================================================
+// CLIENT: IMAGECARDS — bordered cards with text + image zones
+// 2-3 col cards split: text top (subtitle box + body) + image bottom.
+// Bordered title header. Dark: #525B69 card fill. _imgPlaceholder.
+// ============================================================
+
+var IC_CARD_DARK = '#525B69';
+
+function layoutImageCards(cfg) {
+ var isDark = cfg.dark === 1;
+ var items  = cfg.items || [];
+ var cols   = cfg.columns || Math.min(items.length, 3);
+ cols = Math.max(1, Math.min(4, cols));
+ var grid = getGrid(cols);
+
+ var titleMetrics = SD.getTitleMetrics(cfg.title || '');
+
+ // Title border box (rendered first, title text overlays)
+ var borderBoxEls = [{
+   type:'s', x:C.SAFE_X_MIN, y:C.TITLE_Y - 0.10, w:C.SAFE_W,
+   h:titleMetrics.titleH + 0.20,
+   fill: isDark ? 'black' : 'white',
+   border:'ltGray', noShadow:true
+ }];
+
+ var header = renderHeader(cfg);
+ var startY = header.contentY;
+ var els = borderBoxEls.concat(header.els);
+
+ var availH    = C.CONTENT_END - startY;
+ var imgRatio  = (cfg.imgRatio !== undefined) ? cfg.imgRatio : 0.54;
+ var textZoneH = availH * (1 - imgRatio);
+ var imgZoneH  = availH * imgRatio;
+
+ var insetTop    = 0.18;
+ var subBoxH     = 0.42;
+ var gapSubBody  = 0.12;
+ var bodyStartOff = insetTop + subBoxH + gapSubBody;
+ var bodyH       = textZoneH - bodyStartOff - 0.15;
+ var imgZoneOff  = textZoneH;
+ var imgBoxH     = imgZoneH - 0.15;
+
+ var labelColor = isDark ? 'accentLt' : 'accent';
+
+ items.forEach(function(item, i) {
+   if (i >= cols || !grid.cols[i]) return;
+   var cx = grid.cols[i].x;
+   var cw = grid.cols[i].w;
+   var cy = startY;
+
+   // Card background
+   els.push({ type:'s', x:cx, y:cy, w:cw, h:availH,
+     fill: isDark ? IC_CARD_DARK : 'cardBg',
+     border: isDark ? 'ltGray' : 'cardBorder' });
+
+   var textW = cw * C.TEXT_RATIO;
+   var textX = cx + (cw - textW) / 2;
+
+   // Subtitle border box
+   els.push({ type:'s', x:textX, y:cy + insetTop, w:textW, h:subBoxH,
+     fill: isDark ? IC_CARD_DARK : 'white',
+     border:'ltGray', noShadow:true });
+
+   var subTxtW = textW * C.TEXT_RATIO;
+   var subTxtX = textX + (textW - subTxtW) / 2;
+   els.push({ type:'t', text:item.subtitle || '',
+     x:subTxtX, y:cy + insetTop, w:subTxtW, h:subBoxH,
+     font:'H', size:11, color:'title', valign:'middle' });
+
+   // Body text
+   els.push({ type:'t', text:item.text || '',
+     x:textX, y:cy + bodyStartOff, w:textW, h:bodyH,
+     font:'B', size:12, color:'body' });
+
+   // Image placeholder
+   var imgY = cy + imgZoneOff;
+   els.push({ type:'s', x:textX, y:imgY, w:textW, h:imgBoxH,
+     fill: isDark ? 'dkGray' : 'ltGray',
+     border: isDark ? 'ltGray' : 'cardBorder',
+     _imgPlaceholder:true });
+   els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+     x:textX + 0.10, y:imgY + (imgBoxH/2) - 0.15,
+     w:textW - 0.20, h:0.30,
+     font:'H', size:8, color: isDark ? 'muted' : 'gray',
+     align:'center', valign:'middle', _skipExport:true });
+ });
+
+ return els;
+};
 
 // ============================================================
 // CLIENT: HEROSPLIT — asymmetric 2:1 image composition [v6.0.14]
@@ -711,7 +801,8 @@ var LAYOUT_MAP = {
   fromto:layoutFromto, capability:layoutCapability, schedule:layoutSchedule,
   coverloc:layoutCoverloc, coverPresenter:layoutCoverPresenter,
   section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols, gallery:layoutGallery, 
-  heroSide:layoutHeroSide, photocards:layoutPhotocards, herosplit:layoutHerosplit
+  heroSide:layoutHeroSide, photocards:layoutPhotocards, herosplit:layoutHerosplit,
+  imageCards:layoutImageCards
 };
 
 function dispatch(slideData) {
