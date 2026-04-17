@@ -643,6 +643,60 @@ items.forEach(function (item, i) {
 });
 
 return els;
+}; 
+
+// ============================================================
+// CLIENT: HEROSPLIT — asymmetric 2:1 image composition [v6.0.14]
+// Left: 1 large hero image. Right: 2 stacked images (or 1 if 2 items).
+// Optional accent labels per panel. _imgPlaceholder for PPTX.
+// ============================================================
+
+function layoutHerosplit(cfg) {
+var header = renderHeader(cfg);
+var els    = header.els;
+var startY = header.contentY;
+var isDark = cfg.dark === 1;
+var items  = cfg.items || [];
+
+var heroX  = C.SAFE_X_MIN;
+var heroW  = 8.11;
+var rightX = heroX + heroW + C.GAP;
+var rightW = C.SAFE_X_MAX - rightX;
+var availH = C.CONTENT_END - startY;
+
+var phFill   = isDark ? 'cardBg' : 'white';
+var phBorder = isDark ? null : 'cardBorder';
+var phColor  = isDark ? 'muted' : 'gray';
+var lblColor = isDark ? 'accentLt' : 'accent';
+
+function renderPanel(x, w, y, h, item) {
+  els.push({ type:'s', x:x, y:y, w:w, h:h,
+    fill:phFill, border:phBorder, _imgPlaceholder:true });
+  els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+    x:x + 0.20, y:y + (h/2) - 0.15, w:w - 0.40, h:0.30,
+    font:'H', size: w > 5 ? 9 : 8, color:phColor,
+    align:'center', valign:'middle', _skipExport:true });
+  if (item && item.label) {
+    var labelW = w * C.TEXT_RATIO;
+    var labelX = x + (w - labelW) / 2;
+    els.push({ type:'t', text:item.label, x:labelX, y:y + 0.18,
+      w:labelW, h:0.28, font:'H', size:11, color:lblColor });
+  }
+}
+
+// Left: hero (full height)
+renderPanel(heroX, heroW, startY, availH, items[0] || null);
+
+// Right: stacked or single
+if (items.length <= 2) {
+  renderPanel(rightX, rightW, startY, availH, items[1] || null);
+} else {
+  var rightH  = (availH - C.GAP) / 2;
+  renderPanel(rightX, rightW, startY, rightH, items[1] || null);
+  renderPanel(rightX, rightW, startY + rightH + C.GAP, rightH, items[2] || null);
+}
+
+return els;
 };
 
 // ============================================================
@@ -657,7 +711,7 @@ var LAYOUT_MAP = {
   fromto:layoutFromto, capability:layoutCapability, schedule:layoutSchedule,
   coverloc:layoutCoverloc, coverPresenter:layoutCoverPresenter,
   section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols, gallery:layoutGallery, 
-  heroSide:layoutHeroSide, photocards:layoutPhotocards
+  heroSide:layoutHeroSide, photocards:layoutPhotocards, herosplit:layoutHerosplit
 };
 
 function dispatch(slideData) {
