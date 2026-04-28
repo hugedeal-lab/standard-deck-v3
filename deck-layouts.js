@@ -1,11 +1,8 @@
 /* ============================================================
- deck-layouts.js v6.0.16 -- Layout Shortcut Library
- v6.0.11: Bronze accent. coverPresenter v5.
- v6.0.12: gallery, heroSide layouts.
- v6.0.13: photocards layout.
- v6.0.14: herosplit layout.
- v6.0.15: imageCards — gradient cards, _cssGradient/_pptxGradient.
+ deck-layouts.js v6.0.17 -- Layout Shortcut Library
+ v6.0.15: imageCards gradient, no borders.
  v6.0.16: fourquadrant — 2×2 grid + bottom insight rows.
+ v6.0.17: Restored layoutBullets (accidentally deleted in v6.0.16).
  ============================================================ */
 
 (function () {
@@ -175,6 +172,42 @@ function layoutDetail(cfg) {
   });
   return els;
 }
+function layoutBullets(cfg) {
+var h=renderHeader(cfg); var els=h.els; var sY=h.contentY;
+(cfg.items||[]).forEach(function(item,i){
+  var by=sY+i*0.55;
+  els.push({type:'o',x:C.SAFE_X_MIN+0.10,y:by+0.18,w:0.12,h:0.12,fill:'accent'});
+  els.push({type:'t',text:item,x:C.SAFE_X_MIN+0.40,y:by,w:10.00,h:0.55,font:'B',size:15,color:'body',valign:'middle'});
+});
+return els;
+}
+
+function layoutPillar(cfg) {
+var h=renderHeader(cfg); var els=h.els; var sY=h.contentY; var dk=cfg.dark===1;
+var items=cfg.items||[]; var cols=Math.min(items.length,4);
+var grid=getGrid(cols); var aH=C.CONTENT_END-sY; var lc=dk?'accentLt':'accent';
+items.forEach(function(item,i){
+  if(i>=cols)return; var cx=grid.cols[i].x; var cw=grid.cols[i].w;
+  var tw=cw*C.TEXT_RATIO; var tx=cx+(cw-tw)/2;
+  els.push({type:'s',x:cx,y:sY,w:cw,h:aH,fill:'cardBg',border:dk?null:'cardBorder'});
+  els.push({type:'t',text:'PILLAR.'+(item.num||String(i+1).padStart(3,'0')),x:tx,y:sY+0.20,w:tw,h:0.25,font:'H',size:10,color:lc});
+  els.push({type:'d',x:tx,y:sY+0.50,w:tw,color:lc});
+  els.push({type:'t',text:item.title,x:tx,y:sY+0.65,w:tw,h:0.55,font:'H',size:18,color:'title'});
+  if(item.subtitle) els.push({type:'t',text:item.subtitle,x:tx,y:sY+1.30,w:tw,h:0.25,font:'H',size:11,color:'muted'});
+  (item.items||[]).forEach(function(bi,bi_idx){
+    var by=sY+1.70+bi_idx*0.40;
+    els.push({type:'o',x:tx,y:by+0.10,w:0.08,h:0.08,fill:lc});
+    els.push({type:'t',text:bi,x:tx+0.20,y:by,w:tw-0.20,h:0.35,font:'B',size:11,color:'body',valign:'middle'});
+  });
+  if(item.goal){
+    var gy=sY+aH-0.70;
+    els.push({type:'d',x:tx,y:gy,w:tw,color:'ltGray'});
+    els.push({type:'t',text:'GOAL',x:tx,y:gy+0.08,w:tw,h:0.20,font:'H',size:9,color:lc});
+    els.push({type:'t',text:item.goal,x:tx,y:gy+0.30,w:tw,h:0.35,font:'B',size:11,color:'title'});
+  }
+});
+return els;
+}
 
 function layoutFromto(cfg) {
   var h=renderHeader(cfg); var els=h.els; var sY=h.contentY; var dk=cfg.dark===1;
@@ -337,7 +370,7 @@ function layoutCoverPresenter(cfg) {
 }
 
 // ============================================================
-// CLIENT: SECTION — asymmetric dark divider
+// CLIENT: SECTION
 // ============================================================
 
 var SECTION_BG = '#535B69';
@@ -371,7 +404,7 @@ function layoutSection(cfg) {
 }
 
 // ============================================================
-// CLIENT: PROSE — basic narrative slide
+// CLIENT: PROSE
 // ============================================================
 
 function layoutProse(cfg) {
@@ -403,7 +436,7 @@ function layoutProse(cfg) {
 }
 
 // ============================================================
-// CLIENT: TWOCOLS — 2-column image + text spotlights
+// CLIENT: TWOCOLS
 // ============================================================
 
 function layoutTwoCols(cfg) {
@@ -417,21 +450,16 @@ function layoutTwoCols(cfg) {
   var grid = getGrid(cols);
 
   items.slice(0, cols).forEach(function(item, i) {
-    var cx = grid.cols[i].x;
-    var cw = grid.cols[i].w;
+    var cx = grid.cols[i].x; var cw = grid.cols[i].w;
     var imgH = cw * (9 / 16);
 
     els.push({ type:'s', x:cx, y:startY, w:cw, h:imgH,
-      fill: isDark ? 'cardBg' : 'white',
-      border: isDark ? null : 'cardBorder',
+      fill: isDark ? 'cardBg' : 'white', border: isDark ? null : 'cardBorder',
       _imgPlaceholder: true });
-
     els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
-      x: cx + 0.20, y: startY + (imgH / 2) - 0.15,
-      w: cw - 0.40, h: 0.30,
+      x: cx + 0.20, y: startY + (imgH / 2) - 0.15, w: cw - 0.40, h: 0.30,
       font:'H', size:9, color: isDark ? 'muted' : 'gray',
-      align:'center', valign:'middle',
-      _skipExport: true });
+      align:'center', valign:'middle', _skipExport: true });
 
     var textY = startY + imgH + 0.20;
     if (item.subtitle) {
@@ -439,7 +467,6 @@ function layoutTwoCols(cfg) {
         font:'H', size:13, color:'title', textStyle:'L3' });
       textY += 0.30;
     }
-
     if (item.text) {
       els.push({ type:'t', text:item.text, x:cx, y:textY, w:cw,
         h:C.CONTENT_END - textY, font:'B', size:11, color:'body' });
@@ -450,7 +477,7 @@ function layoutTwoCols(cfg) {
 }
 
 // ============================================================
-// CLIENT: GALLERY — 50/50 split with 3-image grid
+// CLIENT: GALLERY
 // ============================================================
 
 var GALLERY_PANEL = '#F5F1EB';
@@ -496,29 +523,26 @@ function layoutGallery(cfg) {
     fill:phFill, border:phBorder, _imgPlaceholder:true });
   els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
     x:rx+0.20, y:C.SAFE_Y_MIN+(topH/2)-0.15, w:rw-0.40, h:0.30,
-    font:'H', size:9, color:phColor, align:'center', valign:'middle',
-    _skipExport:true });
+    font:'H', size:9, color:phColor, align:'center', valign:'middle', _skipExport:true });
 
   els.push({ type:'s', x:rx, y:bottomY, w:botW, h:topH,
     fill:phFill, border:phBorder, _imgPlaceholder:true });
   els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
     x:rx+0.10, y:bottomY+(topH/2)-0.15, w:botW-0.20, h:0.30,
-    font:'H', size:8, color:phColor, align:'center', valign:'middle',
-    _skipExport:true });
+    font:'H', size:8, color:phColor, align:'center', valign:'middle', _skipExport:true });
 
   var brX = rx + botW + C.GAP; var brW = rw - botW - C.GAP;
   els.push({ type:'s', x:brX, y:bottomY, w:brW, h:topH,
     fill:phFill, border:phBorder, _imgPlaceholder:true });
   els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
     x:brX+0.10, y:bottomY+(topH/2)-0.15, w:brW-0.20, h:0.30,
-    font:'H', size:8, color:phColor, align:'center', valign:'middle',
-    _skipExport:true });
+    font:'H', size:8, color:phColor, align:'center', valign:'middle', _skipExport:true });
 
   return els;
 }
 
 // ============================================================
-// CLIENT: HEROSIDE — 1:2 asymmetric text + hero image
+// CLIENT: HEROSIDE
 // ============================================================
 
 function layoutHeroSide(cfg) {
@@ -553,7 +577,7 @@ function layoutHeroSide(cfg) {
 }
 
 // ============================================================
-// CLIENT: PHOTOCARDS — image grid: label + photo + caption
+// CLIENT: PHOTOCARDS
 // ============================================================
 
 function layoutPhotocards(cfg) {
@@ -600,7 +624,7 @@ function layoutPhotocards(cfg) {
 }
 
 // ============================================================
-// CLIENT: HEROSPLIT — asymmetric 2:1 image composition
+// CLIENT: HEROSPLIT
 // ============================================================
 
 function layoutHerosplit(cfg) {
@@ -610,7 +634,7 @@ function layoutHerosplit(cfg) {
   var isDark = cfg.dark === 1;
   var items  = cfg.items || [];
 
-  var heroX  = C.SAFE_X_MIN; var heroW  = 8.11;
+  var heroX  = C.SAFE_X_MIN; var heroW = 8.11;
   var rightX = heroX + heroW + C.GAP;
   var rightW = C.SAFE_X_MAX - rightX;
   var availH = C.CONTENT_END - startY;
@@ -649,7 +673,7 @@ function layoutHerosplit(cfg) {
 }
 
 // ============================================================
-// CLIENT: IMAGECARDS — bordered cards with gradient + image
+// CLIENT: IMAGECARDS
 // ============================================================
 
 var IC_CARD_DARK = '#525B69';
@@ -727,7 +751,7 @@ function layoutImageCards(cfg) {
 }
 
 // ============================================================
-// CLIENT: FOURQUADRANT — 2×2 grid + bottom insight rows
+// CLIENT: FOURQUADRANT
 // ============================================================
 
 function layoutFourquadrant(cfg) {
