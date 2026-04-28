@@ -1,9 +1,9 @@
 /* ============================================================
- deck-shell.js v6.0.7 -- UI Shell & PPTX Export
+ deck-shell.js v6.0.8 -- UI Shell & PPTX Export
  v6.0.5:  _imgPlaceholder, _skipExport, generatePlaceholderImage
  v6.0.6:  Reordered export: dispatch before master/bg overrides
- v6.0.7:  Removed bgMode buttons from color picker. Hardcoded
-          white light bg. Renamed warmBrown → bronze in reset.
+ v6.0.7:  Removed bgMode buttons. Bronze accent. White light bg.
+ v6.0.8:  exportShape _pptxGradient support for imageCards.
  ============================================================ */
 
 (function () {
@@ -175,13 +175,11 @@ function buildToolbar(container) {
 }
 
 // ============================================================
-// COLOR PICKER [v6.0.7: accent swatches only, no bg buttons]
+// COLOR PICKER
 // ============================================================
 
 function buildColorPicker(toolbarRight) {
   var picker = document.createElement('div'); picker.className = 'sd-color-picker';
-
-  // Accent swatches
   var al = document.createElement('div'); al.className = 'sd-picker-label'; al.textContent = 'Accent Color'; picker.appendChild(al);
   var ar = document.createElement('div'); ar.className = 'sd-swatch-row';
   var families = SD.ACCENT_FAMILIES; var ca = SD.getAccent().mid;
@@ -192,16 +190,11 @@ function buildColorPicker(toolbarRight) {
     sw.addEventListener('click', function () { SD.setAccent(name); rerenderAll(); updateSwatchStates(); picker.style.display = 'none'; });
     ar.appendChild(sw);
   }); picker.appendChild(ar);
-
-  // Divider
   picker.appendChild(Object.assign(document.createElement('div'), { className: 'sd-picker-divider' }));
-
-  // Custom hex
   var hr = document.createElement('div'); hr.className = 'sd-hex-row';
   hr.innerHTML = '<span style="color:#8B8C81;font-size:10px;margin-right:4px;">Custom:</span><input type="text" class="sd-hex-input" placeholder="#8D7057" maxlength="7"><button class="sd-hex-apply">Apply</button><button class="sd-hex-reset">Reset</button>';
   picker.appendChild(hr);
   toolbarRight.style.position = 'relative'; toolbarRight.appendChild(picker);
-
   hr.querySelector('.sd-hex-apply').addEventListener('click', function () {
     var hex = hr.querySelector('.sd-hex-input').value.trim();
     if (/^#[0-9A-Fa-f]{6}$/.test(hex)) { SD.setAccent(hex); rerenderAll(); updateSwatchStates(); picker.style.display = 'none'; }
@@ -210,7 +203,6 @@ function buildColorPicker(toolbarRight) {
     SD.setAccent('bronze'); rerenderAll(); updateSwatchStates();
     hr.querySelector('.sd-hex-input').value = ''; picker.style.display = 'none';
   });
-
   return picker;
 }
 
@@ -348,7 +340,7 @@ function rerenderAll() {
 }
 
 // ============================================================
-// PPTX EXPORT [v6.0.7: hardcoded white light bg]
+// PPTX EXPORT [v6.0.8: _pptxGradient support]
 // ============================================================
 
 function exportPPTX() {
@@ -496,15 +488,25 @@ function exportText(slide, el, isDark) {
 }
 
 function exportShape(slide, el, isDark, accent, pptx) {
+  // Image placeholder: export as addImage for "Change Picture..." support
   if (el._imgPlaceholder) {
     var phData = generatePlaceholderImage(el.w, el.h, isDark);
     slide.addImage({ data: phData, x: el.x, y: el.y, w: el.w, h: el.h });
     return;
   }
-  var opts = { x: el.x, y: el.y, w: el.w, h: el.h, fill: { color: SD.colorForPptx(el.fill || 'cardBg', isDark) } };
+
+  // [v6.0.8] Gradient fill support for imageCards
+  var fillOpt;
+  if (el._pptxGradient) {
+    fillOpt = { type:'gradient', stops: el._pptxGradient };
+  } else {
+    fillOpt = { color: SD.colorForPptx(el.fill || 'cardBg', isDark) };
+  }
+
+  var opts = { x: el.x, y: el.y, w: el.w, h: el.h, fill: fillOpt };
   if (el.border) opts.line = { color: SD.colorForPptx(el.border, isDark), width: 1 };
   if (el.transparency) opts.fill.transparency = el.transparency;
-  if (!isDark && el.fill === 'cardBg' && !el.noShadow) opts.shadow = { type:'outer', color:'000000', blur:4, offset:2, angle:135, opacity:0.08 };
+  if (!isDark && el.fill === 'cardBg' && !el.noShadow && !el._pptxGradient) opts.shadow = { type:'outer', color:'000000', blur:4, offset:2, angle:135, opacity:0.08 };
   slide.addShape(pptx.shapes.RECTANGLE, opts);
 }
 

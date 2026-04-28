@@ -1,8 +1,11 @@
 /* ============================================================
- deck-layouts.js v6.0.11 -- Layout Shortcut Library
- v6.0.9:  Fixed duplicate IIFE. coverPresenter v5 dynamic title.
- v6.0.10: twoCols _imgPlaceholder + _skipExport for Change Picture.
- v6.0.11: Accent rename warmBrown → bronze. No functional changes.
+ deck-layouts.js v6.0.16 -- Layout Shortcut Library
+ v6.0.11: Bronze accent. coverPresenter v5.
+ v6.0.12: gallery, heroSide layouts.
+ v6.0.13: photocards layout.
+ v6.0.14: herosplit layout.
+ v6.0.15: imageCards — gradient cards, _cssGradient/_pptxGradient.
+ v6.0.16: fourquadrant — 2×2 grid + bottom insight rows.
  ============================================================ */
 
 (function () {
@@ -151,27 +154,7 @@ function layoutDetail(cfg) {
     if(item.icon) els.push({type:'i',icon:item.icon,x:ix,y:iy,w:0.40,h:0.40});
     els.push({type:'t',text:item.label,x:ix+0.60,y:iy,w:2.50,h:0.40,font:'H',size:13,color:'muted',valign:'middle'});
     els.push({type:'t',text:item.value,x:ix+3.30,y:iy,w:tw-3.30,h:0.40,font:'B',size:13,color:'title',valign:'middle'});
-    if(i<items.length-1) els.push({type:'d',x:ix,y:iy+0.48,w:tw,color:'ltGray'});
-  });
-  return els;
-}
-
-function layoutBullets(cfg) {
-  var h=renderHeader(cfg); var els=h.els; var sY=h.contentY;
-  (cfg.items||[]).forEach(function(item,i){
-    var by=sY+i*0.55;
-    els.push({type:'o',x:C.SAFE_X_MIN+0.10,y:by+0.18,w:0.12,h:0.12,fill:'accent'});
-    els.push({type:'t',text:item,x:C.SAFE_X_MIN+0.40,y:by,w:10.00,h:0.55,font:'B',size:15,color:'body',valign:'middle'});
-  });
-  return els;
-}
-
-function layoutPillar(cfg) {
-  var h=renderHeader(cfg); var els=h.els; var sY=h.contentY; var dk=cfg.dark===1;
-  var items=cfg.items||[]; var cols=Math.min(items.length,4);
-  var grid=getGrid(cols); var aH=C.CONTENT_END-sY; var lc=dk?'accentLt':'accent';
-  items.forEach(function(item,i){
-    if(i>=cols)return; var cx=grid.cols[i].x; var cw=grid.cols[i].w;
+    if(i=cols)return; var cx=grid.cols[i].x; var cw=grid.cols[i].w;
     var tw=cw*C.TEXT_RATIO; var tx=cx+(cw-tw)/2;
     els.push({type:'s',x:cx,y:sY,w:cw,h:aH,fill:'cardBg',border:dk?null:'cardBorder'});
     els.push({type:'t',text:'PILLAR.'+(item.num||String(i+1).padStart(3,'0')),x:tx,y:sY+0.20,w:tw,h:0.25,font:'H',size:10,color:lc});
@@ -467,327 +450,355 @@ function layoutTwoCols(cfg) {
 }
 
 // ============================================================
-// CLIENT: GALLERY — 50/50 split with 3-image grid [v6.0.12]
-// Left: title + subtitle + body. Right: cream/dkGray panel
-// with 1 top + 2 bottom image placeholders.
+// CLIENT: GALLERY — 50/50 split with 3-image grid
 // ============================================================
 
 var GALLERY_PANEL = '#F5F1EB';
 
 function layoutGallery(cfg) {
- var header = renderHeader(cfg);
- var els = header.els;
- var startY = header.contentY;
- var isDark = cfg.dark === 1;
+  var header = renderHeader(cfg);
+  var els = header.els;
+  var startY = header.contentY;
+  var isDark = cfg.dark === 1;
 
- var splitX = C.SLIDE_W / 2;
- var leftW = splitX - C.SAFE_X_MIN - 0.50;
+  var splitX = C.SLIDE_W / 2;
+  var leftW = splitX - C.SAFE_X_MIN - 0.50;
 
- // Constrain header elements to left half
- els.forEach(function(el) {
-   if (el.y < startY && el.type === 't') {
-     el.w = leftW;
-   }
- });
+  els.forEach(function(el) {
+    if (el.y < startY && el.type === 't') { el.w = leftW; }
+  });
 
- // Right-side background panel (full height)
- els.push({ type:'s', x:splitX, y:0, w:C.SLIDE_W - splitX, h:C.SLIDE_H,
-   fill: isDark ? 'dkGray' : GALLERY_PANEL, border:null, noShadow:true });
+  els.push({ type:'s', x:splitX, y:0, w:C.SLIDE_W - splitX, h:C.SLIDE_H,
+    fill: isDark ? 'dkGray' : GALLERY_PANEL, border:null, noShadow:true });
 
- // Left content
- var textY = startY + 0.60;
- if (cfg.subtitle) {
-   els.push({ type:'t', text:cfg.subtitle, x:C.SAFE_X_MIN, y:textY,
-     w:leftW, h:0.40, font:'H', size:18, color:'title' });
-   textY += 0.50;
- }
- if (cfg.text) {
-   els.push({ type:'t', text:cfg.text, x:C.SAFE_X_MIN, y:textY,
-     w:leftW, h:C.CONTENT_END - textY, font:'B', size:13, color:'body' });
- }
+  var textY = startY + 0.60;
+  if (cfg.subtitle) {
+    els.push({ type:'t', text:cfg.subtitle, x:C.SAFE_X_MIN, y:textY,
+      w:leftW, h:0.40, font:'H', size:18, color:'title' });
+    textY += 0.50;
+  }
+  if (cfg.text) {
+    els.push({ type:'t', text:cfg.text, x:C.SAFE_X_MIN, y:textY,
+      w:leftW, h:C.CONTENT_END - textY, font:'B', size:13, color:'body' });
+  }
 
- // Right content: 3-image gallery
- var grid = getGrid(2);
- var rx = grid.cols[1].x;
- var rw = grid.cols[1].w;
- var availH = C.CONTENT_END - C.SAFE_Y_MIN;
- var topH = (availH - C.GAP) / 2;
- var bottomY = C.SAFE_Y_MIN + topH + C.GAP;
- var botW = (rw - C.GAP) / 2;
- var phFill = isDark ? 'black' : 'white';
- var phBorder = isDark ? null : 'ltGray';
- var phColor = isDark ? 'muted' : 'gray';
+  var grid = getGrid(2);
+  var rx = grid.cols[1].x; var rw = grid.cols[1].w;
+  var availH = C.CONTENT_END - C.SAFE_Y_MIN;
+  var topH = (availH - C.GAP) / 2;
+  var bottomY = C.SAFE_Y_MIN + topH + C.GAP;
+  var botW = (rw - C.GAP) / 2;
+  var phFill = isDark ? 'black' : 'white';
+  var phBorder = isDark ? null : 'ltGray';
+  var phColor = isDark ? 'muted' : 'gray';
 
- // Top image (full width)
- els.push({ type:'s', x:rx, y:C.SAFE_Y_MIN, w:rw, h:topH,
-   fill:phFill, border:phBorder, _imgPlaceholder:true });
- els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
-   x:rx+0.20, y:C.SAFE_Y_MIN+(topH/2)-0.15, w:rw-0.40, h:0.30,
-   font:'H', size:9, color:phColor, align:'center', valign:'middle',
-   _skipExport:true });
+  els.push({ type:'s', x:rx, y:C.SAFE_Y_MIN, w:rw, h:topH,
+    fill:phFill, border:phBorder, _imgPlaceholder:true });
+  els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+    x:rx+0.20, y:C.SAFE_Y_MIN+(topH/2)-0.15, w:rw-0.40, h:0.30,
+    font:'H', size:9, color:phColor, align:'center', valign:'middle',
+    _skipExport:true });
 
- // Bottom-left image
- els.push({ type:'s', x:rx, y:bottomY, w:botW, h:topH,
-   fill:phFill, border:phBorder, _imgPlaceholder:true });
- els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
-   x:rx+0.10, y:bottomY+(topH/2)-0.15, w:botW-0.20, h:0.30,
-   font:'H', size:8, color:phColor, align:'center', valign:'middle',
-   _skipExport:true });
+  els.push({ type:'s', x:rx, y:bottomY, w:botW, h:topH,
+    fill:phFill, border:phBorder, _imgPlaceholder:true });
+  els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+    x:rx+0.10, y:bottomY+(topH/2)-0.15, w:botW-0.20, h:0.30,
+    font:'H', size:8, color:phColor, align:'center', valign:'middle',
+    _skipExport:true });
 
- // Bottom-right image
- var brX = rx + botW + C.GAP;
- var brW = rw - botW - C.GAP;
- els.push({ type:'s', x:brX, y:bottomY, w:brW, h:topH,
-   fill:phFill, border:phBorder, _imgPlaceholder:true });
- els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
-   x:brX+0.10, y:bottomY+(topH/2)-0.15, w:brW-0.20, h:0.30,
-   font:'H', size:8, color:phColor, align:'center', valign:'middle',
-   _skipExport:true });
+  var brX = rx + botW + C.GAP; var brW = rw - botW - C.GAP;
+  els.push({ type:'s', x:brX, y:bottomY, w:brW, h:topH,
+    fill:phFill, border:phBorder, _imgPlaceholder:true });
+  els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+    x:brX+0.10, y:bottomY+(topH/2)-0.15, w:brW-0.20, h:0.30,
+    font:'H', size:8, color:phColor, align:'center', valign:'middle',
+    _skipExport:true });
 
- return els;
+  return els;
 }
 
 // ============================================================
-// CLIENT: HEROSIDE — 1:2 asymmetric text + hero image [v6.0.12]
-// Left: subtitle + body (4.06"). Right: large image (8.11").
+// CLIENT: HEROSIDE — 1:2 asymmetric text + hero image
 // ============================================================
 
 function layoutHeroSide(cfg) {
- var header = renderHeader(cfg);
- var els = header.els;
- var startY = header.contentY;
- var isDark = cfg.dark === 1;
+  var header = renderHeader(cfg);
+  var els = header.els;
+  var startY = header.contentY;
+  var isDark = cfg.dark === 1;
 
- // 1:2 Asymmetric grid (§6.5)
- var leftW = 4.06;
- var rightX = 4.81;
- var rightW = 8.11;
+  var leftW = 4.06; var rightX = 4.81; var rightW = 8.11;
 
- // Left: text content
- var textY = startY;
- if (cfg.subtitle) {
-   els.push({ type:'t', text:cfg.subtitle, x:C.SAFE_X_MIN, y:textY,
-     w:leftW, h:0.35, font:'H', size:18, color: isDark ? 'accentLt' : 'sub' });
-   textY += 0.45;
- }
- if (cfg.text) {
-   els.push({ type:'t', text:cfg.text, x:C.SAFE_X_MIN, y:textY,
-     w:leftW, h:C.CONTENT_END - textY, font:'B', size:13, color:'body' });
- }
+  var textY = startY;
+  if (cfg.subtitle) {
+    els.push({ type:'t', text:cfg.subtitle, x:C.SAFE_X_MIN, y:textY,
+      w:leftW, h:0.35, font:'H', size:18, color: isDark ? 'accentLt' : 'sub' });
+    textY += 0.45;
+  }
+  if (cfg.text) {
+    els.push({ type:'t', text:cfg.text, x:C.SAFE_X_MIN, y:textY,
+      w:leftW, h:C.CONTENT_END - textY, font:'B', size:13, color:'body' });
+  }
 
- // Right: hero image placeholder
- var imgH = C.CONTENT_END - startY;
- var phFill = isDark ? 'cardBg' : 'white';
- var phBorder = isDark ? null : 'cardBorder';
-
- els.push({ type:'s', x:rightX, y:startY, w:rightW, h:imgH,
-   fill:phFill, border:phBorder, _imgPlaceholder:true });
- els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
-   x:rightX + 0.50, y:startY + (imgH/2) - 0.15,
-   w:rightW - 1.00, h:0.30,
-   font:'H', size:9, color: isDark ? 'muted' : 'gray',
-   align:'center', valign:'middle', _skipExport:true });
-
- return els;
-}
-
-// ============================================================
-// CLIENT: PHOTOCARDS — image/media grid with subtitle + caption
-// Columns: 2–4 (default 3). Items: [{subtitle, text}]
-// Subtitle above image, caption below. _imgPlaceholder shapes.
-// ============================================================
-
-var layoutPhotocards = function(cfg) {
-var header = renderHeader(cfg);
-var els    = header.els;
-var startY = header.contentY;
-var isDark = cfg.dark === 1;
-
-var items  = cfg.items || [];
-var cols   = cfg.columns || 3;
-var grid   = getGrid(cols);
-
-var availH      = C.CONTENT_END - startY;
-var subtitleH   = 0.28;
-var subtitleGap = 0.05;
-var bodyH       = 0.27;
-var bodyGap     = 0.08;
-var imageH      = availH - subtitleH - subtitleGap - bodyGap - bodyH;
-var imageY      = startY + subtitleH + subtitleGap;
-var bodyY       = imageY + imageH + bodyGap;
-
-var labelColor  = isDark ? 'accentLt' : 'accent';
-
-items.forEach(function (item, i) {
-  if (i >= grid.cols.length) return;
-  var cx = grid.cols[i].x;
-  var cw = grid.cols[i].w;
-
-  // Subtitle label (L3 auto-style)
-  els.push({ type:'t', text:item.subtitle || '', x:cx, y:startY,
-    w:cw, h:subtitleH, font:'H', size:11, color:labelColor });
-
-  // Image placeholder
-  els.push({ type:'s', x:cx, y:imageY, w:cw, h:imageH,
-    fill:'cardBg', border: isDark ? null : 'cardBorder',
+  var imgH = C.CONTENT_END - startY;
+  els.push({ type:'s', x:rightX, y:startY, w:rightW, h:imgH,
+    fill: isDark ? 'cardBg' : 'white', border: isDark ? null : 'cardBorder',
     _imgPlaceholder:true });
   els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
-    x:cx + 0.10, y:imageY + (imageH/2) - 0.15,
-    w:cw - 0.20, h:0.30,
-    font:'H', size:8, color: isDark ? 'muted' : 'gray',
+    x:rightX + 0.50, y:startY + (imgH/2) - 0.15, w:rightW - 1.00, h:0.30,
+    font:'H', size:9, color: isDark ? 'muted' : 'gray',
     align:'center', valign:'middle', _skipExport:true });
 
-  // Caption
-  els.push({ type:'t', text:item.text || '', x:cx, y:bodyY,
-    w:cw, h:bodyH, font:'B', size:13, color:'body' });
-});
-
-return els;
+  return els;
 }
 
 // ============================================================
-// CLIENT: IMAGECARDS — bordered cards with text + image zones
-// 2-3 col cards split: text top (subtitle box + body) + image bottom.
-// Bordered title header. Dark: #525B69 card fill. _imgPlaceholder.
+// CLIENT: PHOTOCARDS — image grid: label + photo + caption
 // ============================================================
 
-var IC_CARD_DARK = '#525B69';
+function layoutPhotocards(cfg) {
+  var header = renderHeader(cfg);
+  var els    = header.els;
+  var startY = header.contentY;
+  var isDark = cfg.dark === 1;
 
-function layoutImageCards(cfg) {
- var isDark = cfg.dark === 1;
- var items  = cfg.items || [];
- var cols   = cfg.columns || Math.min(items.length, 3);
- cols = Math.max(1, Math.min(4, cols));
- var grid = getGrid(cols);
+  var items  = cfg.items || [];
+  var cols   = cfg.columns || 3;
+  var grid   = getGrid(cols);
 
- var titleMetrics = SD.getTitleMetrics(cfg.title || '');
+  var availH      = C.CONTENT_END - startY;
+  var subtitleH   = 0.28;
+  var subtitleGap = 0.05;
+  var bodyH       = 0.27;
+  var bodyGap     = 0.08;
+  var imageH      = availH - subtitleH - subtitleGap - bodyGap - bodyH;
+  var imageY      = startY + subtitleH + subtitleGap;
+  var bodyY       = imageY + imageH + bodyGap;
 
- // Title border box (rendered first, title text overlays)
- var borderBoxEls = [{
-   type:'s', x:C.SAFE_X_MIN, y:C.TITLE_Y - 0.10, w:C.SAFE_W,
-   h:titleMetrics.titleH + 0.20,
-   fill: isDark ? 'black' : 'white',
-   border:'ltGray', noShadow:true
- }];
+  var labelColor  = isDark ? 'accentLt' : 'accent';
 
- var header = renderHeader(cfg);
- var startY = header.contentY;
- var els = borderBoxEls.concat(header.els);
+  items.forEach(function(item, i) {
+    if (i >= grid.cols.length) return;
+    var cx = grid.cols[i].x; var cw = grid.cols[i].w;
 
- var availH    = C.CONTENT_END - startY;
- var imgRatio  = (cfg.imgRatio !== undefined) ? cfg.imgRatio : 0.54;
- var textZoneH = availH * (1 - imgRatio);
- var imgZoneH  = availH * imgRatio;
+    els.push({ type:'t', text:item.subtitle || '', x:cx, y:startY,
+      w:cw, h:subtitleH, font:'H', size:11, color:labelColor });
 
- var insetTop    = 0.18;
- var subBoxH     = 0.42;
- var gapSubBody  = 0.12;
- var bodyStartOff = insetTop + subBoxH + gapSubBody;
- var bodyH       = textZoneH - bodyStartOff - 0.15;
- var imgZoneOff  = textZoneH;
- var imgBoxH     = imgZoneH - 0.15;
+    els.push({ type:'s', x:cx, y:imageY, w:cw, h:imageH,
+      fill:'cardBg', border: isDark ? null : 'cardBorder',
+      _imgPlaceholder:true });
+    els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+      x:cx + 0.10, y:imageY + (imageH/2) - 0.15, w:cw - 0.20, h:0.30,
+      font:'H', size:8, color: isDark ? 'muted' : 'gray',
+      align:'center', valign:'middle', _skipExport:true });
 
- var labelColor = isDark ? 'accentLt' : 'accent';
+    els.push({ type:'t', text:item.text || '', x:cx, y:bodyY,
+      w:cw, h:bodyH, font:'B', size:13, color:'body' });
+  });
 
- items.forEach(function(item, i) {
-   if (i >= cols || !grid.cols[i]) return;
-   var cx = grid.cols[i].x;
-   var cw = grid.cols[i].w;
-   var cy = startY;
-
-   // Card background
-   els.push({ type:'s', x:cx, y:cy, w:cw, h:availH,
-     fill: isDark ? IC_CARD_DARK : 'cardBg',
-     border: isDark ? 'ltGray' : 'cardBorder' });
-
-   var textW = cw * C.TEXT_RATIO;
-   var textX = cx + (cw - textW) / 2;
-
-   // Subtitle border box
-   els.push({ type:'s', x:textX, y:cy + insetTop, w:textW, h:subBoxH,
-     fill: isDark ? IC_CARD_DARK : 'white',
-     border:'ltGray', noShadow:true });
-
-   var subTxtW = textW * C.TEXT_RATIO;
-   var subTxtX = textX + (textW - subTxtW) / 2;
-   els.push({ type:'t', text:item.subtitle || '',
-     x:subTxtX, y:cy + insetTop, w:subTxtW, h:subBoxH,
-     font:'H', size:11, color:'title', valign:'middle' });
-
-   // Body text
-   els.push({ type:'t', text:item.text || '',
-     x:textX, y:cy + bodyStartOff, w:textW, h:bodyH,
-     font:'B', size:12, color:'body' });
-
-   // Image placeholder
-   var imgY = cy + imgZoneOff;
-   els.push({ type:'s', x:textX, y:imgY, w:textW, h:imgBoxH,
-     fill: isDark ? 'dkGray' : 'ltGray',
-     border: isDark ? 'ltGray' : 'cardBorder',
-     _imgPlaceholder:true });
-   els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
-     x:textX + 0.10, y:imgY + (imgBoxH/2) - 0.15,
-     w:textW - 0.20, h:0.30,
-     font:'H', size:8, color: isDark ? 'muted' : 'gray',
-     align:'center', valign:'middle', _skipExport:true });
- });
-
- return els;
-};
+  return els;
+}
 
 // ============================================================
-// CLIENT: HEROSPLIT — asymmetric 2:1 image composition [v6.0.14]
-// Left: 1 large hero image. Right: 2 stacked images (or 1 if 2 items).
-// Optional accent labels per panel. _imgPlaceholder for PPTX.
+// CLIENT: HEROSPLIT — asymmetric 2:1 image composition
 // ============================================================
 
 function layoutHerosplit(cfg) {
-var header = renderHeader(cfg);
-var els    = header.els;
-var startY = header.contentY;
-var isDark = cfg.dark === 1;
-var items  = cfg.items || [];
+  var header = renderHeader(cfg);
+  var els    = header.els;
+  var startY = header.contentY;
+  var isDark = cfg.dark === 1;
+  var items  = cfg.items || [];
 
-var heroX  = C.SAFE_X_MIN;
-var heroW  = 8.11;
-var rightX = heroX + heroW + C.GAP;
-var rightW = C.SAFE_X_MAX - rightX;
-var availH = C.CONTENT_END - startY;
+  var heroX  = C.SAFE_X_MIN; var heroW  = 8.11;
+  var rightX = heroX + heroW + C.GAP;
+  var rightW = C.SAFE_X_MAX - rightX;
+  var availH = C.CONTENT_END - startY;
 
-var phFill   = isDark ? 'cardBg' : 'white';
-var phBorder = isDark ? null : 'cardBorder';
-var phColor  = isDark ? 'muted' : 'gray';
-var lblColor = isDark ? 'accentLt' : 'accent';
+  var phFill   = isDark ? 'cardBg' : 'white';
+  var phBorder = isDark ? null : 'cardBorder';
+  var phColor  = isDark ? 'muted' : 'gray';
+  var lblColor = isDark ? 'accentLt' : 'accent';
 
-function renderPanel(x, w, y, h, item) {
-  els.push({ type:'s', x:x, y:y, w:w, h:h,
-    fill:phFill, border:phBorder, _imgPlaceholder:true });
-  els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
-    x:x + 0.20, y:y + (h/2) - 0.15, w:w - 0.40, h:0.30,
-    font:'H', size: w > 5 ? 9 : 8, color:phColor,
-    align:'center', valign:'middle', _skipExport:true });
-  if (item && item.label) {
-    var labelW = w * C.TEXT_RATIO;
-    var labelX = x + (w - labelW) / 2;
-    els.push({ type:'t', text:item.label, x:labelX, y:y + 0.18,
-      w:labelW, h:0.28, font:'H', size:11, color:lblColor });
+  function renderPanel(x, w, y, h, item) {
+    els.push({ type:'s', x:x, y:y, w:w, h:h,
+      fill:phFill, border:phBorder, _imgPlaceholder:true });
+    els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+      x:x + 0.20, y:y + (h/2) - 0.15, w:w - 0.40, h:0.30,
+      font:'H', size: w > 5 ? 9 : 8, color:phColor,
+      align:'center', valign:'middle', _skipExport:true });
+    if (item && item.label) {
+      var labelW = w * C.TEXT_RATIO;
+      var labelX = x + (w - labelW) / 2;
+      els.push({ type:'t', text:item.label, x:labelX, y:y + 0.18,
+        w:labelW, h:0.28, font:'H', size:11, color:lblColor });
+    }
   }
+
+  renderPanel(heroX, heroW, startY, availH, items[0] || null);
+
+  if (items.length <= 2) {
+    renderPanel(rightX, rightW, startY, availH, items[1] || null);
+  } else {
+    var rightH = (availH - C.GAP) / 2;
+    renderPanel(rightX, rightW, startY, rightH, items[1] || null);
+    renderPanel(rightX, rightW, startY + rightH + C.GAP, rightH, items[2] || null);
+  }
+
+  return els;
 }
 
-// Left: hero (full height)
-renderPanel(heroX, heroW, startY, availH, items[0] || null);
+// ============================================================
+// CLIENT: IMAGECARDS — bordered cards with gradient + image
+// ============================================================
 
-// Right: stacked or single
-if (items.length <= 2) {
-  renderPanel(rightX, rightW, startY, availH, items[1] || null);
-} else {
-  var rightH  = (availH - C.GAP) / 2;
-  renderPanel(rightX, rightW, startY, rightH, items[1] || null);
-  renderPanel(rightX, rightW, startY + rightH + C.GAP, rightH, items[2] || null);
+var IC_CARD_DARK = '#525B69';
+var IC_GRADIENT_CSS = 'radial-gradient(ellipse at center, #525B69 0%, #041528 100%)';
+var IC_GRADIENT_PPTX = [{color:'525B69',position:0},{color:'041528',position:100}];
+
+function layoutImageCards(cfg) {
+  var isDark = cfg.dark === 1;
+  var items  = cfg.items || [];
+  var cols   = cfg.columns || Math.min(items.length, 3);
+  cols = Math.max(1, Math.min(4, cols));
+  var grid = getGrid(cols);
+
+  var titleMetrics = SD.getTitleMetrics(cfg.title || '');
+
+  var borderBoxEls = [{
+    type:'s', x:C.SAFE_X_MIN, y:C.TITLE_Y - 0.10, w:C.SAFE_W,
+    h:titleMetrics.titleH + 0.20,
+    fill: isDark ? 'black' : 'white', noShadow:true
+  }];
+
+  var header = renderHeader(cfg);
+  var startY = header.contentY;
+  var els = borderBoxEls.concat(header.els);
+
+  var availH    = C.CONTENT_END - startY;
+  var imgRatio  = (cfg.imgRatio !== undefined) ? cfg.imgRatio : 0.54;
+  var textZoneH = availH * (1 - imgRatio);
+  var imgZoneH  = availH * imgRatio;
+
+  var insetTop     = 0.18;
+  var subBoxH      = 0.42;
+  var gapSubBody   = 0.12;
+  var bodyStartOff = insetTop + subBoxH + gapSubBody;
+  var bodyH        = textZoneH - bodyStartOff - 0.15;
+  var imgZoneOff   = textZoneH;
+  var imgBoxH      = imgZoneH - 0.15;
+
+  items.forEach(function(item, i) {
+    if (i >= cols || !grid.cols[i]) return;
+    var cx = grid.cols[i].x; var cw = grid.cols[i].w; var cy = startY;
+
+    els.push({ type:'s', x:cx, y:cy, w:cw, h:availH,
+      fill: isDark ? IC_CARD_DARK : 'cardBg',
+      _cssGradient: isDark ? IC_GRADIENT_CSS : null,
+      _pptxGradient: isDark ? IC_GRADIENT_PPTX : null,
+      border: isDark ? null : 'cardBorder' });
+
+    var textW = cw * C.TEXT_RATIO; var textX = cx + (cw - textW) / 2;
+
+    els.push({ type:'s', x:textX, y:cy + insetTop, w:textW, h:subBoxH,
+      fill: isDark ? IC_CARD_DARK : 'white', noShadow:true });
+
+    var subTxtW = textW * C.TEXT_RATIO; var subTxtX = textX + (textW - subTxtW) / 2;
+    els.push({ type:'t', text:item.subtitle || '',
+      x:subTxtX, y:cy + insetTop, w:subTxtW, h:subBoxH,
+      font:'H', size:11, color:'title', valign:'middle' });
+
+    els.push({ type:'t', text:item.text || '',
+      x:textX, y:cy + bodyStartOff, w:textW, h:bodyH,
+      font:'B', size:12, color:'body' });
+
+    var imgY = cy + imgZoneOff;
+    els.push({ type:'s', x:textX, y:imgY, w:textW, h:imgBoxH,
+      fill: isDark ? 'dkGray' : 'ltGray',
+      border: isDark ? 'ltGray' : 'cardBorder',
+      _imgPlaceholder:true });
+    els.push({ type:'t', text:'RIGHT-CLICK \u2192 CHANGE PICTURE',
+      x:textX + 0.10, y:imgY + (imgBoxH/2) - 0.15, w:textW - 0.20, h:0.30,
+      font:'H', size:8, color: isDark ? 'muted' : 'gray',
+      align:'center', valign:'middle', _skipExport:true });
+  });
+
+  return els;
 }
 
-return els;
-};
+// ============================================================
+// CLIENT: FOURQUADRANT — 2×2 grid + bottom insight rows
+// ============================================================
+
+function layoutFourquadrant(cfg) {
+  var header = renderHeader(cfg);
+  var els    = header.els;
+  var startY = header.contentY;
+  var isDark = cfg.dark === 1;
+
+  var quadrants  = cfg.quadrants || [];
+  var bottomRows = cfg.rows      || [];
+  var nBottom    = bottomRows.length;
+  var availH     = C.CONTENT_END - startY;
+  var grid       = getGrid(2);
+
+  var bottomH    = nBottom > 0
+    ? Math.min(1.20, Math.max(0.70, (availH * 0.38) / nBottom))
+    : 0;
+  var sectionGap = nBottom > 0 ? C.GAP : 0;
+  var quadrantH  = (availH - bottomH * nBottom - sectionGap) / 2;
+
+  var labelColor = isDark ? 'accentLt' : 'accent';
+
+  quadrants.forEach(function(item, i) {
+    if (i >= 4) return;
+    var col  = i % 2;
+    var row  = Math.floor(i / 2);
+    var cx   = grid.cols[col].x;
+    var cw   = grid.cols[col].w;
+    var cy   = startY + row * quadrantH;
+    var textW = cw * C.TEXT_RATIO;
+    var textX = cx + (cw - textW) / 2;
+
+    els.push({ type:'s', x:cx, y:cy, w:cw, h:quadrantH,
+      fill:'cardBg', border: isDark ? null : 'cardBorder' });
+
+    if (item.label) {
+      els.push({ type:'t', text:item.label, x:textX, y:cy + 0.20,
+        w:textW, h:0.25, font:'H', size:11, color:labelColor, align:'center' });
+    }
+
+    if (item.text) {
+      els.push({ type:'t', text:item.text, x:textX, y:cy + 0.55,
+        w:textW, h:quadrantH - 0.70, font:'B', size:12, color:'body', align:'center' });
+    }
+  });
+
+  if (nBottom > 0) {
+    var rowsStartY = startY + quadrantH * 2 + sectionGap;
+    var fullTextW  = C.SAFE_W * C.TEXT_RATIO;
+    var fullTextX  = C.SAFE_X_MIN + (C.SAFE_W - fullTextW) / 2;
+
+    bottomRows.forEach(function(row, i) {
+      var ry = rowsStartY + i * bottomH;
+
+      els.push({ type:'s', x:C.SAFE_X_MIN, y:ry, w:C.SAFE_W, h:bottomH,
+        fill:'cardBg', border: isDark ? null : 'cardBorder' });
+
+      if (row.label) {
+        els.push({ type:'t', text:row.label, x:fullTextX, y:ry + 0.15,
+          w:fullTextW, h:0.25, font:'H', size:11, color:labelColor, align:'center' });
+      }
+
+      if (row.text) {
+        els.push({ type:'t', text:row.text, x:fullTextX, y:ry + 0.45,
+          w:fullTextW, h:bottomH - 0.55, font:'B', size:12, color:'body', align:'center' });
+      }
+    });
+  }
+
+  return els;
+}
 
 // ============================================================
 // DISPATCHER
@@ -800,9 +811,10 @@ var LAYOUT_MAP = {
   detail:layoutDetail, bullets:layoutBullets, pillar:layoutPillar,
   fromto:layoutFromto, capability:layoutCapability, schedule:layoutSchedule,
   coverloc:layoutCoverloc, coverPresenter:layoutCoverPresenter,
-  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols, gallery:layoutGallery, 
-  heroSide:layoutHeroSide, photocards:layoutPhotocards, herosplit:layoutHerosplit,
-  imageCards:layoutImageCards
+  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols,
+  gallery:layoutGallery, heroSide:layoutHeroSide,
+  photocards:layoutPhotocards, herosplit:layoutHerosplit,
+  imageCards:layoutImageCards, fourquadrant:layoutFourquadrant
 };
 
 function dispatch(slideData) {

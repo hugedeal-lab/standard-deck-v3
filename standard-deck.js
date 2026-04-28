@@ -1,10 +1,9 @@
 /* ============================================================
- standard-deck.js v6.0.5 -- Core Rendering Engine
+ standard-deck.js v6.0.6 -- Core Rendering Engine
  v6.0.3:  MNAO palette, H weight 500, Arial fallback
  v6.0.4:  Content footer system, 3-way footer logic
- v6.0.5:  Removed bgMode (white light / dark dark always).
-          Renamed warmBrown → bronze. Added 5 accent families:
-          copper, indigo, slate, wine, sage. 13 total.
+ v6.0.5:  Removed bgMode. Bronze default. 13 accent families.
+ v6.0.6:  renderShape _cssGradient support for imageCards.
  ============================================================ */
 
 (function () {
@@ -57,7 +56,7 @@ var PALETTE = {
 };
 
 // ============================================================
-// 13 ACCENT FAMILIES [v6.0.5]
+// 13 ACCENT FAMILIES
 // ============================================================
 
 var ACCENT_FAMILIES = {
@@ -139,7 +138,7 @@ function getFooterDate() {
 }
 
 // ============================================================
-// COLOR RESOLUTION [v6.0.5: no bgMode, always white/black]
+// COLOR RESOLUTION
 // ============================================================
 
 function resolveColor(token, isDark) {
@@ -167,7 +166,7 @@ function colorForPptx(token, isDark) {
 }
 
 // ============================================================
-// BACKGROUND MODE — removed [v6.0.5], no-ops for compat
+// BACKGROUND MODE — removed, no-ops for compat
 // ============================================================
 
 function setBgMode() {}
@@ -319,7 +318,12 @@ function renderShape(el, isDark) {
   div.style.cssText = 'position:absolute;';
   div.style.left = toX(el.x) + 'px'; div.style.top = toY(el.y) + 'px';
   div.style.width = toX(el.w) + 'px'; div.style.height = toY(el.h) + 'px';
-  div.style.backgroundColor = resolveColor(el.fill || 'cardBg', isDark);
+  // [v6.0.6] CSS gradient support for imageCards
+  if (el._cssGradient) {
+    div.style.background = el._cssGradient;
+  } else {
+    div.style.backgroundColor = resolveColor(el.fill || 'cardBg', isDark);
+  }
   if (el.border && typeof el.border === 'string') div.style.border = '1px solid ' + resolveColor(el.border, isDark);
   if (el.transparency) div.style.opacity = (100 - el.transparency) / 100;
   return div;
