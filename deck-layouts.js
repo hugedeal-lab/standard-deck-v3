@@ -1088,6 +1088,90 @@ function layoutTimelineQuarters(cfg) {
 }
 
 // ============================================================
+// CLIENT: ROADMAP — 3-phase cards with header/content/outcome
+// ============================================================
+
+function layoutRoadmap(cfg) {
+var header = renderHeader(cfg);
+var els = header.els;
+var startY = header.contentY;
+var isDark = cfg.dark === 1;
+var items = cfg.items || [];
+var cols = Math.min(items.length, 3);
+if (cols === 0) return els;
+var grid = getGrid(cols);
+var availH = C.CONTENT_END - startY;
+var HEADER_H = 1.40; var OUTCOME_H = 0.72;
+
+items.forEach(function(item, i) {
+  if (i >= cols || !grid.cols[i]) return;
+  var cx = grid.cols[i].x; var cw = grid.cols[i].w;
+
+  // Full card + accent border
+  els.push({ type:'s', x:cx, y:startY, w:cw, h:availH,
+    fill: isDark ? 'black' : 'cardBg', border: isDark ? 'accentLt' : 'accent' });
+
+  // Header zone: white background
+  els.push({ type:'s', x:cx, y:startY, w:cw, h:HEADER_H, fill:'white' });
+
+  if (item.phase) {
+    els.push({ type:'t', text:item.phase, x:cx + 0.18, y:startY + 0.18,
+      w:cw * 0.50, h:0.22, font:'H', size:9, color:'accent', textStyle:'L5' });
+  }
+  if (item.period) {
+    els.push({ type:'t', text:item.period, x:cx, y:startY + 0.18,
+      w:cw - 0.18, h:0.22, font:'H', size:9, color:'accent', align:'right', textStyle:'L5' });
+  }
+  if (item.title) {
+    els.push({ type:'t', text:item.title, x:cx + 0.18, y:startY + 0.50,
+      w:cw - 0.36, h:0.82, font:'H', size:22, color:'black' });
+  }
+
+  // Content zone: bullets
+  var bulletItems = item.items || [];
+  var nBullets = bulletItems.length;
+  var contentH = availH - HEADER_H - OUTCOME_H;
+  var bulletH = nBullets > 0 ? Math.min(0.60, Math.max(0.40, (contentH - 0.25) / nBullets)) : 0.55;
+  var bulletStartY = startY + HEADER_H + 0.18;
+  var bulletColor = isDark ? 'accentLt' : 'accent';
+
+  bulletItems.forEach(function(bullet, bi) {
+    var by = bulletStartY + bi * bulletH;
+    els.push({ type:'o', x:cx + 0.22, y:by + bulletH/2 - 0.06, w:0.10, h:0.10, fill:bulletColor });
+    els.push({ type:'t', text:bullet, x:cx + 0.42, y:by, w:cw - 0.60, h:bulletH,
+      font:'B', size:12, color:'title', valign:'middle', textStyle:'L4' });
+  });
+
+  // Outcome zone: accent background
+  var outcomeY = startY + availH - OUTCOME_H;
+  els.push({ type:'s', x:cx, y:outcomeY, w:cw, h:OUTCOME_H, fill: isDark ? 'accent' : 'accentDk' });
+  els.push({ type:'t', text:item.outcomeLabel || 'KEY OUTCOME', x:cx + 0.18, y:outcomeY + 0.08,
+    w:cw - 0.36, h:0.20, font:'H', size:8, color:'white' });
+
+  if (item.outcome) {
+    var oObj = typeof item.outcome === 'string' ? { text:item.outcome } : item.outcome;
+    var oIcon = oObj.icon || null; var oText = oObj.text || '';
+    var oTxtX = cx + (oIcon ? 0.46 : 0.18); var oTxtW = cw - (oIcon ? 0.64 : 0.36);
+    if (oIcon) {
+      els.push({ type:'i', icon:oIcon, x:cx + 0.18, y:outcomeY + 0.31, w:0.22, h:0.22 });
+    }
+    els.push({ type:'t', text:oText, x:oTxtX, y:outcomeY + 0.30, w:oTxtW, h:0.32,
+      font:'B', size:11, color:'white', valign:'middle', textStyle:'L4' });
+  }
+
+  // Arrow connector
+  if (cfg.arrows !== false && i < cols - 1) {
+    var arrowX = grid.cols[i].x + grid.cols[i].w + C.GAP / 2;
+    var arrowY = startY + availH / 2;
+    els.push({ type:'t', text:'\u203A', x:arrowX - 0.18, y:arrowY - 0.22, w:0.36, h:0.44,
+      font:'H', size:24, color: isDark ? 'accentLt' : 'accent', align:'center', valign:'middle' });
+  }
+});
+
+return els;
+}
+
+// ============================================================
 // DISPATCHER
 // ============================================================
 
@@ -1102,7 +1186,8 @@ var LAYOUT_MAP = {
  gallery:layoutGallery, heroSide:layoutHeroSide,
  photocards:layoutPhotocards, herosplit:layoutHerosplit,
  imageCards:layoutImageCards, fourquadrant:layoutFourquadrant,
- 'timeline-weeks':layoutTimelineWeeks, 'timeline-quarters':layoutTimelineQuarters
+ 'timeline-weeks':layoutTimelineWeeks, 'timeline-quarters':layoutTimelineQuarters,
+ roadmap:layoutRoadmap
 };
 
 function dispatch(slideData) {
