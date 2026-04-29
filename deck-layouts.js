@@ -825,20 +825,219 @@ function layoutFourquadrant(cfg) {
 }
 
 // ============================================================
+// CLIENT: TIMELINE-WEEKS — Calendar week Gantt chart
+// ============================================================
+
+function layoutTimelineWeeks(cfg) {
+var els = [];
+var isDark = cfg.dark === 1;
+var LBL_W = 2.20;
+var TL_X = C.SAFE_X_MIN + LBL_W + 0.12;
+var TL_W = C.SAFE_X_MAX - TL_X;
+var HDR_Y = 1.25; var HDR_H = 0.55;
+var ROWS_Y = HDR_Y + HDR_H + 0.12;
+var AVAIL_H = C.CONTENT_END - ROWS_Y;
+var PAD = 0.20; var GAP = 0.12; var DR = 0.055; var LH = 0.018;
+var periods = cfg.periods || []; var numP = Math.max(periods.length, 1);
+var rows = cfg.rows || []; var colW = TL_W / numP;
+
+if (cfg.title) {
+  els.push({ type:'t', text:cfg.title, x:C.SAFE_X_MIN, y:C.TAG_Y,
+    w:11.00, h:0.40, font:'H', size:30, color:'title' });
+}
+els.push({ type:'s', x:C.SAFE_X_MIN, y:HDR_Y, w:C.SAFE_W, h:HDR_H, fill:'dkGray' });
+els.push({ type:'t', text:cfg.headerLabel || 'CALENDAR WEEKS',
+  x:C.SAFE_X_MIN + 0.15, y:HDR_Y, w:LBL_W - 0.15, h:HDR_H,
+  font:'H', size:10, color:'accentLt', valign:'middle' });
+
+periods.forEach(function(wk, i) {
+  var cx = TL_X + (i + 0.5) * colW; var cy = HDR_Y + HDR_H / 2;
+  var R = Math.min(0.22, colW * 0.38);
+  els.push({ type:'o', x:cx - R, y:cy - R, w:R * 2, h:R * 2, fill:'mdGray' });
+  els.push({ type:'t', text:String(wk), x:cx - R, y:cy - R, w:R * 2, h:R * 2,
+    font:'H', size:13, color:'title', align:'center', valign:'middle' });
+});
+
+periods.forEach(function(wk, i) {
+  if (i === 0) return;
+  els.push({ type:'s', x:TL_X + i * colW - 0.005, y:ROWS_Y, w:0.010, h:AVAIL_H,
+    fill:'mdGray', transparency:78 });
+});
+
+var totalTracks = rows.reduce(function(s, r) {
+  return s + (Array.isArray(r.tracks) ? r.tracks.length : 1);
+}, 0);
+var trackH = Math.max(0.35, Math.min(0.52,
+  (AVAIL_H - rows.length * PAD - (rows.length - 1) * GAP) / Math.max(totalTracks, 1)));
+
+var curY = ROWS_Y;
+rows.forEach(function(row, ri) {
+  var tracks = Array.isArray(row.tracks) ? row.tracks : [[row]];
+  var nTrk = tracks.length; var rowH = nTrk * trackH + PAD;
+  var isAccent = !!row.accent; var lblClr = isAccent ? 'accentLt' : 'body';
+
+  els.push({ type:'t', text:row.label || '', x:C.SAFE_X_MIN + 0.10, y:curY,
+    w:LBL_W - 0.10, h:rowH, font: isAccent ? 'H' : 'B', size:12,
+    color:lblClr, valign:'middle' });
+
+  tracks.forEach(function(track, ti) {
+    var tcY = curY + PAD / 2 + ti * trackH + trackH / 2;
+    var bars = Array.isArray(track) ? track : [track];
+    bars.forEach(function(bar) {
+      if (!bar || bar.start == null || bar.end == null) return;
+      var bc = (bar.accent || bar.color === 'gold') ? 'accentLt' : 'title';
+      var sx = TL_X + (bar.start / numP) * TL_W;
+      var ex = TL_X + (bar.end / numP) * TL_W;
+      var bw = ex - sx; if (bw < 0.02) return;
+      els.push({ type:'s', x:sx, y:tcY - LH / 2, w:bw, h:LH, fill:bc });
+      els.push({ type:'o', x:sx - DR, y:tcY - DR, w:DR * 2, h:DR * 2, fill:bc });
+      if (!bar.open) {
+        els.push({ type:'o', x:ex - DR, y:tcY - DR, w:DR * 2, h:DR * 2, fill:bc });
+      } else {
+        els.push({ type:'t', text:'\u2192', x:ex, y:tcY - 0.11, w:0.18, h:0.22,
+          font:'H', size:9, color:bc });
+      }
+      if (bar.label) {
+        var lw = Math.max(bw + 0.20, 1.20);
+        var lx = Math.max(TL_X, Math.min(C.SAFE_X_MAX - lw, sx + bw / 2 - lw / 2));
+        els.push({ type:'t', text:bar.label, x:lx, y:tcY + DR + 0.02, w:lw, h:0.20,
+          font:'B', size:9, color:bc, align:'center' });
+      }
+    });
+  });
+
+  curY += rowH + GAP;
+  if (ri < rows.length - 1) {
+    els.push({ type:'d', x:C.SAFE_X_MIN, y:curY - GAP / 2, w:C.SAFE_W, color:'muted' });
+  }
+});
+
+return els;
+}
+
+// ============================================================
+// CLIENT: TIMELINE-QUARTERS — Fiscal quarter Gantt chart
+// ============================================================
+
+function layoutTimelineQuarters(cfg) {
+var els = [];
+var isDark = cfg.dark === 1;
+var LBL_W = 2.20;
+var TL_X = C.SAFE_X_MIN + LBL_W + 0.12;
+var TL_W = C.SAFE_X_MAX - TL_X;
+var HDR_Y = 1.25; var HDR_H = 0.55;
+var ROWS_Y = HDR_Y + HDR_H + 0.10;
+var AVAIL_H = C.CONTENT_END - ROWS_Y;
+var PAD = 0.12; var GAP = 0.08; var DR = 0.055; var LH = 0.018;
+var periods = cfg.periods || []; var numP = Math.max(periods.length, 1);
+var rows = cfg.rows || []; var subDivs = cfg.subDivisions || 1;
+var colW = TL_W / numP;
+
+if (cfg.title) {
+  els.push({ type:'t', text:cfg.title, x:C.SAFE_X_MIN, y:C.TAG_Y,
+    w:11.00, h:0.40, font:'H', size:30, color:'title' });
+}
+
+els.push({ type:'s', x:C.SAFE_X_MIN, y:HDR_Y, w:LBL_W, h:HDR_H, fill:'accent' });
+els.push({ type:'t', text:cfg.headerLabel || 'QUARTERS',
+  x:C.SAFE_X_MIN + 0.15, y:HDR_Y, w:LBL_W - 0.15, h:HDR_H,
+  font:'H', size:10, color:'white', valign:'middle' });
+
+periods.forEach(function(qtr, i) {
+  var px = TL_X + i * colW;
+  els.push({ type:'s', x:px, y:HDR_Y, w:colW, h:HDR_H, fill:'accent' });
+  els.push({ type:'t', text:String(qtr), x:px + 0.10, y:HDR_Y, w:colW - 0.20, h:HDR_H,
+    font:'H', size:12, color:'white', align:'center', valign:'middle' });
+});
+
+periods.forEach(function(qtr, i) {
+  if (i === 0) return;
+  els.push({ type:'s', x:TL_X + i * colW - 0.006, y:ROWS_Y, w:0.012, h:AVAIL_H,
+    fill:'mdGray', transparency:65 });
+});
+
+if (subDivs > 1) {
+  for (var pi = 0; pi < numP; pi++) {
+    for (var si = 1; si < subDivs; si++) {
+      var sgx = TL_X + (pi + si / subDivs) * colW;
+      els.push({ type:'s', x:sgx - 0.004, y:ROWS_Y, w:0.008, h:AVAIL_H,
+        fill:'mdGray', transparency:85 });
+    }
+  }
+}
+
+var totalTracks = rows.reduce(function(s, r) {
+  return s + (Array.isArray(r.tracks) ? r.tracks.length : 1);
+}, 0);
+var trackH = Math.max(0.28, Math.min(0.48,
+  (AVAIL_H - rows.length * PAD - (rows.length - 1) * GAP) / Math.max(totalTracks, 1)));
+
+var curY = ROWS_Y;
+rows.forEach(function(row, ri) {
+  var tracks = Array.isArray(row.tracks) ? row.tracks : [[row]];
+  var nTrk = tracks.length; var rowH = nTrk * trackH + PAD;
+  var isAccent = !!row.accent; var lblClr = isAccent ? 'accentLt' : 'title';
+
+  if (ri % 2 === 1) {
+    els.push({ type:'s', x:C.SAFE_X_MIN, y:curY, w:C.SAFE_W, h:rowH,
+      fill:'dkGray', transparency:60 });
+  }
+
+  els.push({ type:'t', text:row.label || '', x:C.SAFE_X_MIN + 0.10, y:curY,
+    w:LBL_W - 0.10, h:rowH, font: isAccent ? 'H' : 'B', size:11,
+    color:lblClr, valign:'middle' });
+
+  tracks.forEach(function(track, ti) {
+    var tcY = curY + PAD / 2 + ti * trackH + trackH / 2;
+    var bars = Array.isArray(track) ? track : [track];
+    bars.forEach(function(bar) {
+      if (!bar || bar.start == null || bar.end == null) return;
+      var bc = (bar.accent || bar.color === 'gold') ? 'accentLt' : 'title';
+      var sx = TL_X + (bar.start / numP) * TL_W;
+      var ex = TL_X + (bar.end / numP) * TL_W;
+      var bw = ex - sx; if (bw < 0.02) return;
+      els.push({ type:'s', x:sx, y:tcY - LH / 2, w:bw, h:LH, fill:bc });
+      els.push({ type:'o', x:sx - DR, y:tcY - DR, w:DR * 2, h:DR * 2, fill:bc });
+      if (!bar.open) {
+        els.push({ type:'o', x:ex - DR, y:tcY - DR, w:DR * 2, h:DR * 2, fill:bc });
+      } else {
+        els.push({ type:'t', text:'\u2192', x:ex, y:tcY - 0.11, w:0.18, h:0.22,
+          font:'H', size:9, color:bc });
+      }
+      if (bar.label) {
+        var lw = Math.max(bw + 0.20, 1.00);
+        var lx = Math.max(TL_X, Math.min(C.SAFE_X_MAX - lw, sx + bw / 2 - lw / 2));
+        els.push({ type:'t', text:bar.label, x:lx, y:tcY + DR + 0.02, w:lw, h:0.18,
+          font:'B', size:8, color:bc, align:'center' });
+      }
+    });
+  });
+
+  curY += rowH + GAP;
+  if (ri < rows.length - 1) {
+    els.push({ type:'d', x:C.SAFE_X_MIN, y:curY - GAP / 2, w:C.SAFE_W, color:'muted' });
+  }
+});
+
+return els;
+}
+
+// ============================================================
 // DISPATCHER
 // ============================================================
 
 var LAYOUT_MAP = {
-  cover:layoutCover, closing:layoutClosing, divider:layoutDivider,
-  agenda:layoutAgenda, cards:layoutCards, stats:layoutStats,
-  metrics:layoutMetrics, split:layoutSplit, rows:layoutRows,
-  detail:layoutDetail, bullets:layoutBullets, pillar:layoutPillar,
-  fromto:layoutFromto, capability:layoutCapability, schedule:layoutSchedule,
-  coverloc:layoutCoverloc, coverPresenter:layoutCoverPresenter,
-  section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols,
-  gallery:layoutGallery, heroSide:layoutHeroSide,
-  photocards:layoutPhotocards, herosplit:layoutHerosplit,
-  imageCards:layoutImageCards, fourquadrant:layoutFourquadrant
+cover:layoutCover, closing:layoutClosing, divider:layoutDivider,
+agenda:layoutAgenda, cards:layoutCards, stats:layoutStats,
+metrics:layoutMetrics, split:layoutSplit, rows:layoutRows,
+detail:layoutDetail, bullets:layoutBullets, pillar:layoutPillar,
+fromto:layoutFromto, capability:layoutCapability, schedule:layoutSchedule,
+coverloc:layoutCoverloc, coverPresenter:layoutCoverPresenter,
+section:layoutSection, prose:layoutProse, twoCols:layoutTwoCols,
+gallery:layoutGallery, heroSide:layoutHeroSide,
+photocards:layoutPhotocards, herosplit:layoutHerosplit,
+imageCards:layoutImageCards, fourquadrant:layoutFourquadrant,
+'timeline-weeks':layoutTimelineWeeks, 'timeline-quarters':layoutTimelineQuarters
 };
 
 function dispatch(slideData) {
