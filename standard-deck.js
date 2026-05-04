@@ -283,7 +283,7 @@ function renderText(el, isDark) {
   div.style.fontSize = ptToPx(el.size) + 'px';
   div.style.color = resolveColor(el.color || 'body', isDark);
   div.style.lineHeight = '1.35';
-  var fm = FONT_MAP[el.font || 'B'];
+  var fm = FONT_MAP[el.font] || FONT_MAP['B'];
   div.style.fontFamily = fm.face;
   div.style.fontWeight = fm.weight;
   if (el.bold) div.style.fontWeight = 700;
