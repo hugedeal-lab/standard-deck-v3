@@ -62,7 +62,9 @@ return new Promise(function(resolve) {
       var svg = data.trim()
         .replace(/<!--[\s\S]*?-->\s*/g, "")
         .replace(/\s*width="24"/g, "")
-        .replace(/\s*height="24"/g, "");
+        .replace(/\s*height="24"/g, "")
+        .replace(/\n\s*/g, " ")
+        .replace(/\s{2,}/g, " ");
       resolve({ name: name, svg: svg });
     });
   }).on("error", function() { resolve({ name: name, svg: null }); });
