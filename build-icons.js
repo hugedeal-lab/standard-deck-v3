@@ -3,7 +3,7 @@ const https = require("https");
 const fs = require("fs");
 const path = require("path");
 
-const VERSION = "0.474.0";
+const VERSION = "latest";
 const BASE = "https://cdn.jsdelivr.net/npm/lucide-static@" + VERSION + "/icons/";
 
 const ICONS = [
