@@ -331,15 +331,24 @@ function renderShape(el, isDark) {
 
 function renderOval(el, isDark) { var div = renderShape(el, isDark); div.style.borderRadius = '50%'; return div; }
 
-function renderIcon(el) {
-  var div = document.createElement('div');
-  div.style.cssText = 'position:absolute;display:flex;align-items:center;justify-content:center;line-height:1;';
-  div.style.left = toX(el.x) + 'px'; div.style.top = toY(el.y) + 'px';
-  div.style.width = toX(el.w) + 'px'; div.style.height = toY(el.h) + 'px';
-  var scale = (el.w >= 0.45) ? 0.55 : 0.45;
-  div.style.fontSize = Math.min(toX(el.w), toY(el.h)) * scale + 'px';
+function renderIcon(el, isDark) {
+var div = document.createElement('div');
+div.style.cssText = 'position:absolute;display:flex;align-items:center;justify-content:center;line-height:1;';
+div.style.left = toX(el.x) + 'px'; div.style.top = toY(el.y) + 'px';
+div.style.width = toX(el.w) + 'px'; div.style.height = toY(el.h) + 'px';
+
+var color = resolveColor(el.color || 'accent', isDark);
+var sizePx = Math.min(toX(el.w), toY(el.h)) * 0.55;
+
+// Try Lucide SVG first, fall back to emoji/text
+if (window.DeckIcons && window.DeckIcons.has(el.icon)) {
+  div.innerHTML = window.DeckIcons.get(el.icon, color, Math.round(sizePx));
+} else {
+  div.style.fontSize = sizePx + 'px';
+  div.style.color = color;
   div.textContent = el.icon || '';
-  return div;
+}
+return div;
 }
 
 function renderDivider(el, isDark) {
