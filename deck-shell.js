@@ -22,18 +22,44 @@ var _imageCache = {};
 // ============================================================
 
 function prefetchImage(url) {
-  if (_imageCache[url]) return;
-  var img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = function () {
-    var canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-    var ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
-    try { _imageCache[url] = canvas.toDataURL('image/png'); }
-    catch (e) { console.warn('[deck-shell] CORS blocked prefetch: ' + url); }
-  };
-  img.onerror = function () { console.warn('[deck-shell] Failed to prefetch: ' + url); };
-  img.src = url;
+if (_imageCache[url]) return;
+var img = new Image();
+img.crossOrigin = 'anonymous';
+img.onload = function () {
+  var canvas = document.createElement('canvas');
+  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+  var ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0);
+  try { _imageCache[url] = canvas.toDataURL('image/png'); }
+  catch (e) { console.warn('[deck-shell] CORS blocked prefetch: ' + url); }
+};
+img.onerror = function () { console.warn('[deck-shell] Failed to prefetch: ' + url); };
+img.src = url;
+}
+
+// ============================================================
+// ICON PNG PRE-RENDER CACHE
+// ============================================================
+
+var _iconCache = {};
+
+function prerenderIcon(name, size, color) {
+var key = name + '_' + size + '_' + color;
+if (_iconCache[key]) return;
+if (!window.DeckIcons || !window.DeckIcons.has(name)) return;
+var svg = window.DeckIcons.get(name, color, size);
+if (!svg) return;
+var img = new Image();
+var blob = new Blob([svg], {type: 'image/svg+xml'});
+var url = URL.createObjectURL(blob);
+img.onload = function() {
+  var canvas = document.createElement('canvas');
+  canvas.width = size; canvas.height = size;
+  var ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, size, size);
+  _iconCache[key] = canvas.toDataURL('image/png');
+  URL.revokeObjectURL(url);
+};
+img.src = url;
 }
 
 // ============================================================
@@ -520,9 +546,21 @@ function exportPill(slide, el, isDark, accent, pptx) {
 
 function exportBar(slide, el, isDark, accent, pptx) { slide.addShape(pptx.shapes.RECTANGLE, { x:el.x, y:el.y, w:el.w, h:el.h, fill:{color:SD.colorForPptx(el.fill||'accent',isDark)} }); }
 
-function exportIcon(slide, el) {
-  var scale = (el.w >= 0.45) ? 0.50 : 0.42;
-  slide.addText(el.icon||'', { x:el.x, y:el.y, w:el.w, h:el.h, fontSize:Math.min(el.w,el.h)*72*scale, align:'center', valign:'middle', margin:[0,0,0,0], lineSpacingMultiple:1.0 });
+function exportIcon(slide, el, isDark) {
+var color = SD.colorForPptx(el.color || 'accent', isDark);
+var sizePx = Math.round(Math.min(el.w, el.h) * 72 * 0.55);
+var key = el.icon + '_' + sizePx + '_#' + color;
+
+// Use pre-rendered PNG from cache
+if (_iconCache[key]) {
+  slide.addImage({ data: _iconCache[key], x: el.x, y: el.y, w: el.w, h: el.h });
+  return;
+}
+// Fallback: emoji as text
+var scale = (el.w >= 0.45) ? 0.50 : 0.42;
+slide.addText(el.icon || '', { x: el.x, y: el.y, w: el.w, h: el.h,
+  fontSize: Math.min(el.w, el.h) * 72 * scale,
+  align: 'center', valign: 'middle', margin: [0,0,0,0], lineSpacingMultiple: 1.0 });
 }
 
 function exportChart(slide, el, isDark, accent, pptx) {
@@ -567,44 +605,61 @@ function exportImage(slide, el) {
 // ============================================================
 
 function deckInit(config) {
-  config = config || {}; _config = config; _D = window.D || [];
-  _totalSlides = _D.length; _noLogo = !!config.noLogo; _imageMode = !!config.imageMode;
-  injectStyles();
+config = config || {}; _config = config; _D = window.D || [];
+_totalSlides = _D.length; _noLogo = !!config.noLogo; _imageMode = !!config.imageMode;
+injectStyles();
 
-  if (config.accent) SD.setAccent(config.accent);
-  else if (window.AH) SD.setAccent(window.AH, window.AL, window.AD);
+if (config.accent) SD.setAccent(config.accent);
+else if (window.AH) SD.setAccent(window.AH, window.AL, window.AD);
 
-  if (config.footer) SD.setFooter(config.footer);
+if (config.footer) SD.setFooter(config.footer);
 
-  if (config.contentFooter === false || config.contentFooter === 'none') SD.setContentFooter(null);
-  else if (config.contentFooter) SD.setContentFooter(config.contentFooter);
+if (config.contentFooter === false || config.contentFooter === 'none') SD.setContentFooter(null);
+else if (config.contentFooter) SD.setContentFooter(config.contentFooter);
 
-  window._deckTitle = config.title || 'Presentation';
+window._deckTitle = config.title || 'Presentation';
 
-  var vp = document.getElementById('sd-viewport');
-  if (!vp && !_imageMode) { vp = document.createElement('div'); vp.id = 'sd-viewport'; document.body.appendChild(vp); }
-  if (!_imageMode && vp) SD.renderAll(_D, vp);
+var vp = document.getElementById('sd-viewport');
+if (!vp && !_imageMode) { vp = document.createElement('div'); vp.id = 'sd-viewport'; document.body.appendChild(vp); }
+if (!_imageMode && vp) SD.renderAll(_D, vp);
 
-  if (window.DeckLayouts && window.DeckLayouts.getPrefetchUrls) window.DeckLayouts.getPrefetchUrls().forEach(prefetchImage);
+if (window.DeckLayouts && window.DeckLayouts.getPrefetchUrls) window.DeckLayouts.getPrefetchUrls().forEach(prefetchImage);
 
-  var container = _imageMode ? (document.getElementById('sw') || document.body) : document.body;
-  var toolbar = buildToolbar(container);
-  var toolbarRight = toolbar.querySelector('.sd-toolbar-right');
-  var colorPicker = buildColorPicker(toolbarRight);
-
-  toolbarRight.querySelector('.sd-color-btn').addEventListener('click', function () {
-    closeAllPanels(); colorPicker.style.display = colorPicker.style.display === 'none' ? 'flex' : 'none';
+// Pre-render icons for PPTX export
+if (window.DeckIcons) {
+  _D.forEach(function(slideData) {
+    var els = [];
+    if (slideData.layout && window.DeckLayouts) els = window.DeckLayouts.dispatch(slideData);
+    else els = slideData.els || [];
+    els.forEach(function(el) {
+      if (el.type === 'i' && el.icon) {
+        var isDark = !!slideData.dark;
+        var color = SD.resolveColor(el.color || 'accent', isDark);
+        var size = Math.round(Math.min(el.w, el.h) * 72 * 0.55);
+        prerenderIcon(el.icon, size, color);
+      }
+    });
   });
-  buildNotesPanel();
-  toolbarRight.querySelector('.sd-notes-btn').addEventListener('click', function () { closeAllPanels(); toggleNotesPanel(); });
-  buildLogoPanel();
-  toolbarRight.querySelector('.sd-logo-btn').addEventListener('click', function () { closeAllPanels(); toggleLogoPanel(); });
-  toolbarRight.querySelector('.sd-download-btn').addEventListener('click', exportPPTX);
+}
 
-  setupKeyboard();
-  window.addEventListener('resize', scaleViewport); scaleViewport();
-  toolbar.style.borderBottomColor = SD.getAccent().mid;
-  showSlide(0);
+var container = _imageMode ? (document.getElementById('sw') || document.body) : document.body;
+var toolbar = buildToolbar(container);
+var toolbarRight = toolbar.querySelector('.sd-toolbar-right');
+var colorPicker = buildColorPicker(toolbarRight);
+
+toolbarRight.querySelector('.sd-color-btn').addEventListener('click', function () {
+  closeAllPanels(); colorPicker.style.display = colorPicker.style.display === 'none' ? 'flex' : 'none';
+});
+buildNotesPanel();
+toolbarRight.querySelector('.sd-notes-btn').addEventListener('click', function () { closeAllPanels(); toggleNotesPanel(); });
+buildLogoPanel();
+toolbarRight.querySelector('.sd-logo-btn').addEventListener('click', function () { closeAllPanels(); toggleLogoPanel(); });
+toolbarRight.querySelector('.sd-download-btn').addEventListener('click', exportPPTX);
+
+setupKeyboard();
+window.addEventListener('resize', scaleViewport); scaleViewport();
+toolbar.style.borderBottomColor = SD.getAccent().mid;
+showSlide(0);
 }
 
 // ============================================================
