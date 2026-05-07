@@ -46,16 +46,17 @@ function prerenderIcon(name, size, color) {
 var key = name + '_' + size + '_' + color;
 if (_iconCache[key]) return;
 if (!window.DeckIcons || !window.DeckIcons.has(name)) return;
-var svg = window.DeckIcons.get(name, color, size);
+var renderSize = size * 3;  // 3x resolution for sharp PPTX export
+var svg = window.DeckIcons.get(name, color, renderSize);
 if (!svg) return;
 var img = new Image();
 var blob = new Blob([svg], {type: 'image/svg+xml'});
 var url = URL.createObjectURL(blob);
 img.onload = function() {
   var canvas = document.createElement('canvas');
-  canvas.width = size; canvas.height = size;
+  canvas.width = renderSize; canvas.height = renderSize;
   var ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, size, size);
+  ctx.drawImage(img, 0, 0, renderSize, renderSize);
   _iconCache[key] = canvas.toDataURL('image/png');
   URL.revokeObjectURL(url);
 };
