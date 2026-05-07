@@ -59,7 +59,10 @@ return new Promise(function(resolve) {
     var data = "";
     res.on("data", function(c) { data += c; });
     res.on("end", function() {
-      var svg = data.trim().replace(/\s*width="24"/g, "").replace(/\s*height="24"/g, "");
+      var svg = data.trim()
+        .replace(/<!--[\s\S]*?-->\s*/g, "")
+        .replace(/\s*width="24"/g, "")
+        .replace(/\s*height="24"/g, "");
       resolve({ name: name, svg: svg });
     });
   }).on("error", function() { resolve({ name: name, svg: null }); });
